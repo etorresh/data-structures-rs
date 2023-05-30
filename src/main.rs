@@ -41,13 +41,15 @@ impl<T> LinkedList<T> {
         });
 
         self.head = Some(new_node);
+        self.counter += 1;
     }
 
     fn add_last(&mut self, data: T) {
-        let new_node = Box::new(Node { data, next: None });
-        let current;
-        while (current != None) {
-            current = &self.head;
+        let current = &self.head;
+        match current {
+            Some(_) => {}
+            None => self.add_first(data),
         }
+        // let new_node = Box::new(Node { data, next: None });
     }
 }
