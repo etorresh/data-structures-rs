@@ -3,7 +3,8 @@ fn main() {
     let mut x: LinkedList<i32> = LinkedList::new();
     x.add_last(5);
     x.add_last(10);
-    println!("{}", x.head.unwrap().next.unwrap().data);
+    x.remove_last(5);
+    // println!("{}", x.head.unwrap().next.unwrap().data);
 }
 
 struct Node<T> {
@@ -51,16 +52,8 @@ impl<T> LinkedList<T> {
         self.head = self.head.take().and_then(|node| node.next);
         self.counter -= 1;
     }
-    fn remove_last(&mut self) {
-        let mut current = &mut self.head;
-        loop {
-            match current {
-                Some(node) => current = &mut node.next,
-                None => break,
-            }
-        }
-        self.counter -= 1;
-    }
+
+    fn remove_last(&mut self) {}
     fn remove() {}
     fn find() {}
     fn peek() {}
