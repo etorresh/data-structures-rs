@@ -1,26 +1,22 @@
 // Singly linked ist
 fn main() {
-    // let x = Node {
-    //     data: 5,
-    //     next: None,
-    // };
-    // let y = Node {
-    //     data: 10,
-    //     next: Some(Box::new(x)),
-    // };
-    // let z = Node {
-    //     data: 15,
-    //     next: Some(Box::new(y)),
-    // };
-
-    // let head = z;
-    // if head.next.unwrap().next.unwrap().data == 5 {
-    //     println!("I can see the last value")
-    // }
-    let x: LinkedList<i32> = LinkedList {
-        head: None,
-        counter: 0,
-    };
+    let mut x: LinkedList<i32> = LinkedList::new();
+    x.add_first(5);
+    x.add_first(10);
+    x.add_first(15);
+    x.add_last(15);
+    println!(
+        "{}",
+        x.head
+            .unwrap()
+            .next
+            .unwrap()
+            .next
+            .unwrap()
+            .next
+            .unwrap()
+            .data
+    );
 }
 
 struct Node<T> {
@@ -34,6 +30,12 @@ struct LinkedList<T> {
 }
 
 impl<T> LinkedList<T> {
+    fn new() -> LinkedList<T> {
+        LinkedList {
+            head: None,
+            counter: 0,
+        }
+    }
     fn add_first(&mut self, data: T) {
         let new_node = Box::new(Node {
             data,
@@ -45,11 +47,16 @@ impl<T> LinkedList<T> {
     }
 
     fn add_last(&mut self, data: T) {
-        let current = &self.head;
-        match current {
-            Some(_) => {}
-            None => self.add_first(data),
+        let mut current = &mut self.head;
+        loop {
+            match current {
+                Some(node) => current = &mut node.next,
+                None => break,
+            }
         }
-        // let new_node = Box::new(Node { data, next: None });
+        let new_node = Box::new(Node { data, next: None });
+        *current = Some(new_node);
+
+        self.counter += 1;
     }
 }
