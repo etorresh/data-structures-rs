@@ -87,7 +87,7 @@ impl<T> LinkedList<T> {
         self.counter -= 1;
         */
 
-        /* LOOK AHEAD
+        /* LOOK AHEAD */
         let mut current = &mut self.head;
         while let Some(node) = current {
             if node
@@ -103,7 +103,6 @@ impl<T> LinkedList<T> {
                 break;
             }
         }
-        */
     }
     fn remove() {}
     fn find() {}
