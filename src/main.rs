@@ -1,6 +1,5 @@
 use data_structures::LinkedList;
-
 fn main() {
-    let mut list = LinkedList::new();
-    list.add_first(5);
+    let mut x = LinkedList::new();
+    x.add_first(5);
 }
