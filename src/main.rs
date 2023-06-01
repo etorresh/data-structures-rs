@@ -88,8 +88,25 @@ impl<T> LinkedList<T> {
         */
 
         /* LOOK AHEAD */
+        // Start at the head of the list
         let mut current = &mut self.head;
+
+        // Check case where there is a single element in the structure
+        if let Some(node) = current {
+            // If the node doesn't have a next node, remove it and return early.
+            if node.next.is_none() {
+                *current = None;
+                self.counter -= 1;
+                return;
+            }
+        } else {
+            // If the first node is None, then the list is empty. Return early.
+            return;
+        }
+
+        // Traverse the list looking two nodes ahead
         while let Some(node) = current {
+            // If two nodes ahead exist, move our reference one node ahead
             if node
                 .next
                 .as_ref()
@@ -98,6 +115,7 @@ impl<T> LinkedList<T> {
             {
                 current = &mut node.next;
             } else {
+                // If there is no two nodes ahead, remove the last node.
                 node.next = None;
                 self.counter -= 1;
                 break;
