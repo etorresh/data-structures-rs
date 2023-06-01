@@ -115,6 +115,7 @@ impl<T> LinkedList<T> {
         }
 
         /* Optimal strategy */
+        // To be implemented
     }
     pub fn remove() {}
     pub fn find() {}
@@ -123,6 +124,20 @@ impl<T> LinkedList<T> {
     }
     pub fn peek_mut(&mut self) -> Option<&mut T> {
         self.head.as_mut().map(|node| &mut node.data)
+    }
+}
+
+pub struct IntoIter<T>(LinkedList<T>);
+impl<T> LinkedList<T> {
+    pub fn into_iter(self) -> IntoIter<T> {
+        IntoIter(self)
+    }
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.remove_first()
     }
 }
 
@@ -224,5 +239,19 @@ mod tests {
 
         assert_eq!(list.peek(), Some(&42));
         assert_eq!(list.remove_first(), Some(42));
+    }
+
+    #[test]
+    fn into_iter() {
+        let mut list = LinkedList::new();
+        list.add_first(1);
+        list.add_first(2);
+        list.add_first(3);
+
+        let mut iter = list.into_iter();
+        assert_eq!(iter.next(), Some(3));
+        assert_eq!(iter.next(), Some(2));
+        assert_eq!(iter.next(), Some(1));
+        assert_eq!(iter.next(), None);
     }
 }
