@@ -1,10 +1,7 @@
 // Singly linked ist
 fn main() {
     let mut x: LinkedList<i32> = LinkedList::new();
-    x.add_last(5);
-    x.add_last(10);
-    x.remove_last(5);
-    // println!("{}", x.head.unwrap().next.unwrap().data);
+    x.remove_first();
 }
 
 struct Node<T> {
@@ -49,11 +46,43 @@ impl<T> LinkedList<T> {
     }
 
     fn remove_first(&mut self) {
+        if self.head.is_none() {
+            return;
+        }
         self.head = self.head.take().and_then(|node| node.next);
         self.counter -= 1;
     }
 
-    fn remove_last(&mut self) {}
+    fn remove_last(&mut self) {
+        // Look ahead solution: traverse looking two nodes ahead to see if we're at the second to last node.
+        // Count and cut: traverse once and count the values. Traverse again and stop at count - 1
+        // Best option: use current and previous, but how the fuck do we handle two mutable references?
+
+        /* */
+        if self.head.is_none() {
+            return;
+        }
+        let mut current = &self.head;
+        let mut node_count = 0;
+        loop {
+            match current {
+                Some(node) => {
+                    current = &node.next;
+                    node_count += 1;
+                }
+                None => break,
+            }
+        }
+        let mut current = &mut self.head;
+        for _ in 0..node_count - 1 {
+            match current {
+                Some(node) => current = &mut node.next,
+                None => break,
+            }
+        }
+        *current = current.take().and_then(|node| node.next);
+        self.counter -= 1;
+    }
     fn remove() {}
     fn find() {}
     fn peek() {}
