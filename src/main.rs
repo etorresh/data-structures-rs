@@ -88,9 +88,6 @@ impl<T> LinkedList<T> {
         */
 
         /* LOOK AHEAD */
-        if self.head.is_none() {
-            return;
-        }
         let mut current = &mut self.head;
         while let Some(node) = current {
             if node
