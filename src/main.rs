@@ -57,9 +57,9 @@ impl<T> LinkedList<T> {
     }
 
     fn remove_last(&mut self) {
-        // Look ahead solution: traverse looking two nodes ahead to see if we're at the second to last node.
-        // Count and cut: traverse once and count the values. Traverse again and stop at count - 1
-        // Best option: use current and previous, but how the fuck do we handle two mutable references?
+        // Look Ahead Strategy: Traverse through the list, always checking two nodes ahead to determine if the current node is the penultimate node.
+        // Count and Cut Strategy: Traverse through the list once while counting the nodes. Traverse again and stop at count - 1, essentially cutting the last node.
+        // Optimal Strategy: Maintain two pointers, current and previous, but handling two mutable references simultaneously requires careful consideration in Rust due to the borrow checker.
 
         /* COUNT AND CUT
         if self.head.is_none() {
@@ -87,7 +87,7 @@ impl<T> LinkedList<T> {
         self.counter -= 1;
         */
 
-        /* LOOK AHEAD */
+        /* LOOK AHEAD
         let mut current = &mut self.head;
         while let Some(node) = current {
             if node
@@ -103,6 +103,7 @@ impl<T> LinkedList<T> {
                 break;
             }
         }
+        */
     }
     fn remove() {}
     fn find() {}
