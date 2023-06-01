@@ -92,15 +92,16 @@ impl<T> LinkedList<T> {
             return;
         }
         let mut current = &mut self.head;
-        loop {
-            if current
-                .as_mut()
-                .and_then(|node| node.next.as_mut())
-                .and_then(|next_node| next_node.next.as_mut())
+        while let Some(node) = current {
+            if node
+                .next
+                .as_ref()
+                .and_then(|next_node| next_node.next.as_ref())
                 .is_some()
             {
-                *current = current.take().and_then(|node| node.next);
+                current = &mut node.next;
             } else {
+                node.next = None;
                 self.counter -= 1;
                 break;
             }
