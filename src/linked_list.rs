@@ -51,7 +51,7 @@ impl<T> LinkedList<T> {
     pub fn remove_last(&mut self) {
         // Look Ahead Strategy: Traverse through the list, always checking two nodes ahead to determine if the current node is the penultimate node.
         // Count and Cut Strategy: Traverse through the list once while counting the nodes. Traverse again and stop at count - 1, essentially cutting the last node.
-        // Optimal Strategy: Maintain two pointers, current and previous, but handling two mutable references simultaneously requires careful consideration in Rust due to the borrow checker.
+        // Optimal Strategy: Maintain two pointers, current and previous, but I don't know how to handle two mutable references simultaneously. Rc and RefCell? I need to read
 
         /* COUNT AND CUT
         if self.head.is_none() {
@@ -79,7 +79,7 @@ impl<T> LinkedList<T> {
         self.counter -= 1;
         */
 
-        /* LOOK AHEAD */
+        /* LOOK AHEAD
         // Start at the head of the list
         let mut current = &mut self.head;
 
@@ -113,9 +113,15 @@ impl<T> LinkedList<T> {
                 break;
             }
         }
+        */
 
         /* Optimal strategy */
-        // To be implemented
+        let mut current = &self.head.as_ref().unwrap().next;
+        let mut previous = &mut self.head;
+        // let mut current = &mut self.head;
+        // while let Some(node) = current {
+        //     current = &mut node.next;
+        // }
     }
     pub fn remove() {}
     pub fn find() {}
@@ -125,6 +131,7 @@ impl<T> LinkedList<T> {
     pub fn peek_mut(&mut self) -> Option<&mut T> {
         self.head.as_mut().map(|node| &mut node.data)
     }
+    pub fn reverse(&mut self) {}
 }
 
 pub struct IntoIter<T>(LinkedList<T>);
