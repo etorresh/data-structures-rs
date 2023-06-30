@@ -79,7 +79,7 @@ impl<T> LinkedList<T> {
         self.counter -= 1;
         */
 
-        /* LOOK AHEAD
+        // LOOK AHEAD
         // Start at the head of the list
         let mut current = &mut self.head;
 
@@ -113,15 +113,8 @@ impl<T> LinkedList<T> {
                 break;
             }
         }
-        */
 
         /* Optimal strategy */
-        let mut current = &self.head.as_ref().unwrap().next;
-        let mut previous = &mut self.head;
-        // let mut current = &mut self.head;
-        // while let Some(node) = current {
-        //     current = &mut node.next;
-        // }
     }
     pub fn remove() {}
     pub fn find() {}
@@ -131,7 +124,18 @@ impl<T> LinkedList<T> {
     pub fn peek_mut(&mut self) -> Option<&mut T> {
         self.head.as_mut().map(|node| &mut node.data)
     }
-    pub fn reverse(&mut self) {}
+    pub fn reverse(&mut self) {
+        let mut prev_link = None;
+        let mut current_link = self.head.take();
+
+        while let Some(mut current_node) = current_link {
+            let next_link = current_node.next.take();
+            current_node.next = prev_link;
+            prev_link = Some(current_node);
+            current_link = next_link;
+        }
+        self.head = prev_link;
+    }
 }
 
 pub struct IntoIter<T>(LinkedList<T>);
@@ -334,5 +338,20 @@ mod tests {
         assert_eq!(iter.next(), Some(&mut 3));
         assert_eq!(iter.next(), Some(&mut 2));
         assert_eq!(iter.next(), Some(&mut 1));
+    }
+
+    #[test]
+    fn reverse() {
+        let mut list = LinkedList::new();
+        list.add_first(3);
+        list.add_first(2);
+        list.add_first(1);
+
+        list.reverse();
+
+        let mut iter = list.iter();
+        assert_eq!(iter.next(), Some(&3));
+        assert_eq!(iter.next(), Some(&2));
+        assert_eq!(iter.next(), Some(&1));
     }
 }
