@@ -354,4 +354,16 @@ mod tests {
         assert_eq!(iter.next(), Some(&2));
         assert_eq!(iter.next(), Some(&1));
     }
+
+    #[test]
+    fn counter() {
+        let mut list = LinkedList::new();
+        for x in 1..100 {
+            list.add_first(x);
+        }
+        for x in 1..100 {
+            list.remove_last();
+        }
+        assert_eq!(list.counter, 0);
+    }
 }
