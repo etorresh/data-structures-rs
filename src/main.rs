@@ -1,25 +1,28 @@
+#[derive(Debug)]
+enum List {
+    Cons(Rc<RefCell<i32>>, Rc<List>),
+    Nil,
+}
+
+impl Drop for List {
+    println!("bye baby");
+}
+
+use crate::List::{Cons, Nil};
+use std::cell::RefCell;
 use std::rc::Rc;
 
-struct MyStruct {
-    field: u32,
-}
-
-struct human {
-    name: String,
-    sibling: Option<Rc<human>>,
-}
-
 fn main() {
-    let a = Rc::new(human {
-        name: String::from("Juan"),
-        sibling: None,
-    });
-    let b = human {
-        name: String::from("Juana"),
-        sibling: Some(Rc::clone(&a)),
-    };
-    let c = human {
-        name: String::from("Adriana"),
-        sibling: Some(Rc::clone(&a)),
-    };
+    let value = Rc::new(RefCell::new(5));
+
+    let a = Rc::new(Cons(Rc::clone(&value), Rc::new(Nil)));
+
+    let b = Cons(Rc::new(RefCell::new(3)), Rc::clone(&a));
+    let c = Cons(Rc::new(RefCell::new(4)), Rc::clone(&a));
+
+    *value.borrow_mut() += 10;
+
+    println!("a after = {:?}", a);
+    println!("b after = {:?}", b);
+    println!("c after = {:?}", c);
 }

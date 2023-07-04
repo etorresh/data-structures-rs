@@ -1,27 +1,31 @@
-// Singly linked ist
+use std::borrow::BorrowMut;
+use std::cell::RefCell;
+use std::rc::Rc;
+
+type Link<T> = Rc<RefCell<Option<Node<T>>>>;
 struct Node<T> {
     data: T,
-    next: Option<Box<Node<T>>>,
+    next: Link<T>,
 }
 
 pub struct LinkedList<T> {
-    head: Option<Box<Node<T>>>,
+    head: Link<T>,
     counter: usize,
 }
 
 impl<T> LinkedList<T> {
     pub fn new() -> LinkedList<T> {
         LinkedList {
-            head: None,
+            head: Rc::new(RefCell::new(None)),
             counter: 0,
         }
     }
     pub fn add_first(&mut self, data: T) {
-        let new_node = Box::new(Node {
+        let new_node = Node {
             data,
-            next: self.head.take(),
-        });
-        self.head = Some(new_node);
+            next: Rc::clone(&self.head),
+        };
+        self.head = Rc::new(RefCell::new(Some(new_node)));
 
         self.counter += 1;
     }
@@ -29,13 +33,16 @@ impl<T> LinkedList<T> {
     pub fn add_last(&mut self, data: T) {
         let mut current = &mut self.head;
         loop {
-            match current {
+            match current.borrow().as_ref() {
                 Some(node) => current = &mut node.next,
                 None => break,
             }
         }
-        let new_node = Box::new(Node { data, next: None });
-        *current = Some(new_node);
+        let new_node = Node {
+            data,
+            next: Rc::new(RefCell::new(None)),
+        };
+        *current.borrow_mut() = Rc::new(RefCell::new(Some(new_node)));
 
         self.counter += 1;
     }
@@ -84,10 +91,10 @@ impl<T> LinkedList<T> {
         let mut current = &mut self.head;
 
         // Check case where there is a single element in the structure
-        if let Some(node) = current {
+        if let Some(node) = current.borrow().as_ref() {
             // If the node doesn't have a next node, remove it and return early.
-            if node.next.is_none() {
-                *current = None;
+            if node.next.borrow().is_none() {
+                *current.borrow_mut() = Rc::new(RefCell::new(None));
                 self.counter -= 1;
                 return;
             }
@@ -97,18 +104,18 @@ impl<T> LinkedList<T> {
         }
 
         // Traverse the list looking two nodes ahead
-        while let Some(node) = current {
+        while let Some(ref mut node) = current.borrow().as_ref() {
             // If two nodes ahead exist, move our reference one node ahead
             if node
                 .next
-                .as_ref()
-                .and_then(|next_node| next_node.next.as_ref())
+                .borrow()
+                .and_then(|next_node| *next_node.next.borrow())
                 .is_some()
             {
                 current = &mut node.next;
             } else {
                 // If there is no two nodes ahead, remove the last node.
-                node.next = None;
+                node.next = Rc::new(RefCell::new(None));
                 self.counter -= 1;
                 break;
             }
@@ -118,23 +125,25 @@ impl<T> LinkedList<T> {
     }
     pub fn remove() {}
     pub fn find() {}
-    pub fn peek(&self) -> Option<&T> {
-        self.head.as_ref().map(|node| &node.data)
-    }
-    pub fn peek_mut(&mut self) -> Option<&mut T> {
-        self.head.as_mut().map(|node| &mut node.data)
-    }
+    // pub fn peek(&self) -> Option<&T> {
+    //     self.head.borrow().map(|node| &node.data)
+    // }
+
+    // pub fn peek_mut(&mut self) -> Option<&mut T> {
+    //     self.head.borrow_mut().map(|ref mut node| &mut node.data)
+    // }
+
     pub fn reverse(&mut self) {
         let mut prev_link = None;
         let mut current_link = self.head.take();
 
         while let Some(mut current_node) = current_link {
             let next_link = current_node.next.take();
-            current_node.next = prev_link;
+            current_node.next = Rc::new(RefCell::new(prev_link));
             prev_link = Some(current_node);
             current_link = next_link;
         }
-        self.head = prev_link;
+        self.head = Rc::new(RefCell::new(prev_link));
     }
 }
 
@@ -152,53 +161,53 @@ impl<T> Iterator for IntoIter<T> {
     }
 }
 
-pub struct Iter<'a, T> {
-    next: Option<&'a Node<T>>,
-}
+// pub struct Iter<'a, T> {
+//     next: Option<&'a Node<T>>,
+// }
 
-impl<T> LinkedList<T> {
-    pub fn iter(&self) -> Iter<T> {
-        Iter {
-            // equivalent to self.head.as_ref().map(|node| &**node)
-            next: self.head.as_deref(),
-        }
-    }
-}
+// impl<T> LinkedList<T> {
+//     pub fn iter(&self) -> Iter<T> {
+//         Iter {
+//             // equivalent to self.head.as_ref().map(|node| &**node)
+//             next: self.head.as_deref(),
+//         }
+//     }
+// }
 
-impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = &'a T;
+// impl<'a, T> Iterator for Iter<'a, T> {
+//     type Item = &'a T;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.next.map(|node| {
-            // self.next = node.next.as_ref().map(|node| &**node)
-            self.next = node.next.as_deref();
-            &node.data
-        })
-    }
-}
+//     fn next(&mut self) -> Option<Self::Item> {
+//         self.next.map(|node| {
+//             // self.next = node.next.as_ref().map(|node| &**node)
+//             self.next = node.next.as_deref();
+//             &node.data
+//         })
+//     }
+// }
 
-pub struct IterMut<'a, T> {
-    next: Option<&'a mut Node<T>>,
-}
+// pub struct IterMut<'a, T> {
+//     next: Option<&'a mut Node<T>>,
+// }
 
-impl<T> LinkedList<T> {
-    pub fn iter_mut(&mut self) -> IterMut<'_, T> {
-        IterMut {
-            next: self.head.as_deref_mut(),
-        }
-    }
-}
+// impl<T> LinkedList<T> {
+//     pub fn iter_mut(&mut self) -> IterMut<'_, T> {
+//         IterMut {
+//             next: self.head.as_deref_mut(),
+//         }
+//     }
+// }
 
-impl<'a, T> Iterator for IterMut<'a, T> {
-    type Item = &'a mut T;
+// impl<'a, T> Iterator for IterMut<'a, T> {
+//     type Item = &'a mut T;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.next.take().map(|node| {
-            self.next = node.next.as_deref_mut();
-            &mut node.data
-        })
-    }
-}
+//     fn next(&mut self) -> Option<Self::Item> {
+//         self.next.take().map(|node| {
+//             self.next = node.next.as_deref_mut();
+//             &mut node.data
+//         })
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
