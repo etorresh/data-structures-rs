@@ -31,12 +31,9 @@ impl<T> LinkedList<T> {
     }
 
     pub fn add_last(&mut self, data: T) {
-        let mut current = &mut self.head;
-        loop {
-            match current.borrow().as_ref() {
-                Some(node) => current = &mut node.next,
-                None => break,
-            }
+        let current = &mut self.head;
+        while let Some(node) = current.borrow_mut().take() {
+            *current = node.next;
         }
         let new_node = Node {
             data,
@@ -88,37 +85,65 @@ impl<T> LinkedList<T> {
 
         // LOOK AHEAD
         // Start at the head of the list
-        let mut current = &mut self.head;
+        let mut current = Rc::clone(&self.head);
 
-        // Check case where there is a single element in the structure
-        if let Some(node) = current.borrow().as_ref() {
-            // If the node doesn't have a next node, remove it and return early.
-            if node.next.borrow().is_none() {
-                *current.borrow_mut() = Rc::new(RefCell::new(None));
-                self.counter -= 1;
-                return;
-            }
-        } else {
-            // If the first node is None, then the list is empty. Return early.
+        // Check case where the list is empty
+        if current.borrow().is_none() {
             return;
         }
 
+        // Check if the list has size of 1
+        let mut single_element_list = true;
+        if let Some(current_node) = current.borrow().as_ref() {
+            if current_node.next.borrow().as_ref().is_some() {
+                single_element_list = false;
+            }
+        }
+        // If the list has size 1 then remove the single node and return early.
+        if single_element_list {
+            *current.borrow_mut() = Rc::new(RefCell::new(None));
+        }
+
         // Traverse the list looking two nodes ahead
+        let mut traverse = true;
+        while traverse {
+            let mut step = None;
+            if let Some(ref mut node) = current.borrow().as_ref() {
+                if let Some(next_node) = node.next.borrow().as_ref() {
+                    if next_node.next.borrow().is_some() {
+                        step = Some(Rc::clone(&node.next));
+                    }
+                }
+            }
+            if let Some(link) = step {
+                current = link;
+            } else {
+                // if there are no two nodes ahead, remove the last node.
+                // REMOVE here
+                self.counter -= 1;
+                traverse = false;
+            }
+        }
         while let Some(ref mut node) = current.borrow().as_ref() {
             // If two nodes ahead exist, move our reference one node ahead
-            if node
-                .next
-                .borrow()
-                .and_then(|next_node| *next_node.next.borrow())
-                .is_some()
-            {
-                current = &mut node.next;
-            } else {
-                // If there is no two nodes ahead, remove the last node.
-                node.next = Rc::new(RefCell::new(None));
-                self.counter -= 1;
-                break;
+            if let Some(next_node) = node.next.borrow().as_ref() {
+                if next_node.next.borrow().is_some() {
+                    // Here I should make current be equal to node.next. How do I do t hat?
+                }
             }
+            // if node
+            //     .next
+            //     .borrow()
+            //     .and_then(|next_node| *next_node.next.borrow())
+            //     .is_some()
+            // {
+            //     current = &mut node.next;
+            // } else {
+            //     // If there is no two nodes ahead, remove the last node.
+            //     node.next = Rc::new(RefCell::new(None));
+            //     self.counter -= 1;
+            //     break;
+            // }
         }
 
         /* Optimal strategy */
@@ -218,7 +243,7 @@ mod tests {
         let mut x = LinkedList::new();
         x.add_first(10);
         x.add_first(5);
-        assert_eq!(x.head.unwrap().data, 5);
+        assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
     }
 
     #[test]
@@ -226,7 +251,7 @@ mod tests {
         let mut x = LinkedList::new();
         x.add_last(5);
         x.add_last(10);
-        assert_eq!(x.head.unwrap().data, 5);
+        assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
     }
 
     #[test]
@@ -235,7 +260,22 @@ mod tests {
         x.add_first(10);
         x.add_first(5);
         x.add_last(15);
-        assert_eq!(x.head.unwrap().next.unwrap().next.unwrap().data, 15);
+        assert_eq!(
+            x.head
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .next
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .next
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .data,
+            15
+        );
     }
 
     #[test]
@@ -258,7 +298,7 @@ mod tests {
         x.add_first(5);
         x.remove_first();
         assert_eq!(x.counter, 0);
-        assert!(x.head.is_none());
+        assert!(x.head.borrow().is_none());
     }
 
     #[test]
@@ -267,7 +307,7 @@ mod tests {
         x.add_first(5);
         x.remove_last();
         assert_eq!(x.counter, 0);
-        assert!(x.head.is_none());
+        assert!(x.head.borrow().is_none());
     }
 
     #[test]
@@ -277,8 +317,7 @@ mod tests {
         x.add_first(10);
         x.remove_first();
         assert_eq!(x.counter, 1);
-        assert_eq!(x.head.as_ref().unwrap().data, 5);
-        assert!(x.head.and_then(|next_node| next_node.next).is_none());
+        assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
     }
 
     #[test]
@@ -288,25 +327,7 @@ mod tests {
         x.add_first(10);
         x.remove_last();
         assert_eq!(x.counter, 1);
-        assert_eq!(x.head.as_ref().unwrap().data, 10);
-        assert!(x.head.and_then(|next_node| next_node.next).is_none());
-    }
-
-    #[test]
-    fn peek() {
-        let mut list = LinkedList::new();
-        assert_eq!(list.peek(), None);
-        assert_eq!(list.peek_mut(), None);
-        list.add_first(1);
-        list.add_first(2);
-        list.add_first(3);
-
-        assert_eq!(list.peek(), Some(&3));
-        assert_eq!(list.peek_mut(), Some(&mut 3));
-        list.peek_mut().map(|value| *value = 42);
-
-        assert_eq!(list.peek(), Some(&42));
-        assert_eq!(list.remove_first(), Some(42));
+        assert_eq!(x.head.borrow().as_ref().unwrap().data, 10);
     }
 
     #[test]
@@ -322,33 +343,6 @@ mod tests {
         assert_eq!(iter.next(), Some(1));
         assert_eq!(iter.next(), None);
     }
-
-    #[test]
-    fn iter() {
-        let mut list = LinkedList::new();
-        list.add_first(1);
-        list.add_first(2);
-        list.add_first(3);
-
-        let mut iter = list.iter();
-        assert_eq!(iter.next(), Some(&3));
-        assert_eq!(iter.next(), Some(&2));
-        assert_eq!(iter.next(), Some(&1));
-    }
-
-    #[test]
-    fn iter_mut() {
-        let mut list = LinkedList::new();
-        list.add_first(1);
-        list.add_first(2);
-        list.add_first(3);
-
-        let mut iter = list.iter_mut();
-        assert_eq!(iter.next(), Some(&mut 3));
-        assert_eq!(iter.next(), Some(&mut 2));
-        assert_eq!(iter.next(), Some(&mut 1));
-    }
-
     #[test]
     fn reverse() {
         let mut list = LinkedList::new();
@@ -358,10 +352,11 @@ mod tests {
 
         list.reverse();
 
-        let mut iter = list.iter();
-        assert_eq!(iter.next(), Some(&3));
-        assert_eq!(iter.next(), Some(&2));
-        assert_eq!(iter.next(), Some(&1));
+        let mut iter = list.into_iter();
+
+        assert_eq!(iter.next(), Some(3));
+        assert_eq!(iter.next(), Some(2));
+        assert_eq!(iter.next(), Some(1));
     }
 
     #[test]

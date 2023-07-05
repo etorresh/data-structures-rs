@@ -4,10 +4,6 @@ enum List {
     Nil,
 }
 
-impl Drop for List {
-    println!("bye baby");
-}
-
 use crate::List::{Cons, Nil};
 use std::cell::RefCell;
 use std::rc::Rc;
