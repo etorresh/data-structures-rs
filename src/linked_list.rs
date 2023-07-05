@@ -10,38 +10,42 @@ struct Node<T> {
 
 pub struct LinkedList<T> {
     head: Link<T>,
+    tail: Link<T>,
     counter: usize,
 }
 
 impl<T> LinkedList<T> {
     pub fn new() -> LinkedList<T> {
+        let head = Rc::new(RefCell::new(None));
+        let tail = Rc::clone(&head);
         LinkedList {
-            head: Rc::new(RefCell::new(None)),
+            head,
+            tail,
             counter: 0,
         }
     }
     pub fn add_first(&mut self, data: T) {
-        let new_node = Node {
+        let new_node = Rc::new(RefCell::new(Some(Node {
             data,
             next: Rc::clone(&self.head),
-        };
-        self.head = Rc::new(RefCell::new(Some(new_node)));
+        })));
 
+        // If this is the first element added to the list then also set the tail to be equal to this new node
+        if self.head.borrow().is_none() {
+            self.tail = Rc::clone(&new_node)
+        }
+        self.head = new_node;
         self.counter += 1;
     }
 
+    // CONTINUE HERE
     pub fn add_last(&mut self, data: T) {
-        let current = &mut self.head;
-        while let Some(node) = current.borrow_mut().take() {
-            *current = node.next;
-        }
-        let new_node = Node {
+        let new_node = Rc::new(RefCell::new(Some(Node {
             data,
             next: Rc::new(RefCell::new(None)),
-        };
-        *current.borrow_mut() = Rc::new(RefCell::new(Some(new_node)));
+        })));
 
-        self.counter += 1;
+        *self.tail.borrow_mut();
     }
 
     pub fn remove_first(&mut self) -> Option<T> {
@@ -52,111 +56,7 @@ impl<T> LinkedList<T> {
         })
     }
 
-    pub fn remove_last(&mut self) {
-        // Look Ahead Strategy: Traverse through the list, always checking two nodes ahead to determine if the current node is the penultimate node.
-        // Count and Cut Strategy: Traverse through the list once while counting the nodes. Traverse again and stop at count - 1, essentially cutting the last node.
-        // Optimal Strategy: Maintain two pointers, current and previous, but I don't know how to handle two mutable references simultaneously. Rc and RefCell? I need to read
-
-        /* COUNT AND CUT
-        if self.head.is_none() {
-            return;
-        }
-        let mut current = &self.head;
-        let mut node_count = 0;
-        loop {
-            match current {
-                Some(node) => {
-                    current = &node.next;
-                    node_count += 1;
-                }
-                None => break,
-            }
-        }
-        let mut current = &mut self.head;
-        for _ in 0..node_count - 1 {
-            match current {
-                Some(node) => current = &mut node.next,
-                None => break,
-            }
-        }
-        *current = current.take().and_then(|node| node.next);
-        self.counter -= 1;
-        */
-
-        // LOOK AHEAD
-        // Start at the head of the list
-        let mut current = Rc::clone(&self.head);
-
-        // Check case where the list is empty
-        if current.borrow().is_none() {
-            return;
-        }
-
-        // Check if the list has size of 1
-        let mut single_element_list = true;
-        if let Some(current_node) = current.borrow().as_ref() {
-            if current_node.next.borrow().as_ref().is_some() {
-                single_element_list = false;
-            }
-        }
-        // If the list has size 1 then remove the single node and return early.
-        if single_element_list {
-            *current.borrow_mut() = Rc::new(RefCell::new(None));
-        }
-
-        // Traverse the list looking two nodes ahead
-        let mut traverse = true;
-        while traverse {
-            let mut step = None;
-            if let Some(ref mut node) = current.borrow().as_ref() {
-                if let Some(next_node) = node.next.borrow().as_ref() {
-                    if next_node.next.borrow().is_some() {
-                        step = Some(Rc::clone(&node.next));
-                    }
-                }
-            }
-            if let Some(link) = step {
-                current = link;
-            } else {
-                // if there are no two nodes ahead, remove the last node.
-                // REMOVE here
-                self.counter -= 1;
-                traverse = false;
-            }
-        }
-        while let Some(ref mut node) = current.borrow().as_ref() {
-            // If two nodes ahead exist, move our reference one node ahead
-            if let Some(next_node) = node.next.borrow().as_ref() {
-                if next_node.next.borrow().is_some() {
-                    // Here I should make current be equal to node.next. How do I do t hat?
-                }
-            }
-            // if node
-            //     .next
-            //     .borrow()
-            //     .and_then(|next_node| *next_node.next.borrow())
-            //     .is_some()
-            // {
-            //     current = &mut node.next;
-            // } else {
-            //     // If there is no two nodes ahead, remove the last node.
-            //     node.next = Rc::new(RefCell::new(None));
-            //     self.counter -= 1;
-            //     break;
-            // }
-        }
-
-        /* Optimal strategy */
-    }
-    pub fn remove() {}
-    pub fn find() {}
-    // pub fn peek(&self) -> Option<&T> {
-    //     self.head.borrow().map(|node| &node.data)
-    // }
-
-    // pub fn peek_mut(&mut self) -> Option<&mut T> {
-    //     self.head.borrow_mut().map(|ref mut node| &mut node.data)
-    // }
+    pub fn remove_last(&mut self) {}
 
     pub fn reverse(&mut self) {
         let mut prev_link = None;
@@ -185,54 +85,6 @@ impl<T> Iterator for IntoIter<T> {
         self.0.remove_first()
     }
 }
-
-// pub struct Iter<'a, T> {
-//     next: Option<&'a Node<T>>,
-// }
-
-// impl<T> LinkedList<T> {
-//     pub fn iter(&self) -> Iter<T> {
-//         Iter {
-//             // equivalent to self.head.as_ref().map(|node| &**node)
-//             next: self.head.as_deref(),
-//         }
-//     }
-// }
-
-// impl<'a, T> Iterator for Iter<'a, T> {
-//     type Item = &'a T;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         self.next.map(|node| {
-//             // self.next = node.next.as_ref().map(|node| &**node)
-//             self.next = node.next.as_deref();
-//             &node.data
-//         })
-//     }
-// }
-
-// pub struct IterMut<'a, T> {
-//     next: Option<&'a mut Node<T>>,
-// }
-
-// impl<T> LinkedList<T> {
-//     pub fn iter_mut(&mut self) -> IterMut<'_, T> {
-//         IterMut {
-//             next: self.head.as_deref_mut(),
-//         }
-//     }
-// }
-
-// impl<'a, T> Iterator for IterMut<'a, T> {
-//     type Item = &'a mut T;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         self.next.take().map(|node| {
-//             self.next = node.next.as_deref_mut();
-//             &mut node.data
-//         })
-//     }
-// }
 
 #[cfg(test)]
 mod tests {
@@ -365,7 +217,7 @@ mod tests {
         for x in 1..100 {
             list.add_first(x);
         }
-        for x in 1..100 {
+        for _ in 1..100 {
             list.remove_last();
         }
         assert_eq!(list.counter, 0);
