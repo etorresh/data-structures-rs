@@ -1,4 +1,5 @@
-use std::borrow::BorrowMut;
+// I had std::borrow::BorrowMut which was shadowing the method of the same name in RefCell.
+// I'm learning Rust so I thought the error was on my logic, my brain almost fucking fried.
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -38,14 +39,25 @@ impl<T> LinkedList<T> {
         self.counter += 1;
     }
 
-    // CONTINUE HERE
     pub fn add_last(&mut self, data: T) {
-        let new_node = Rc::new(RefCell::new(Some(Node {
+        let mut current_tail_node = self.tail.take();
+        if current_tail_node.is_none() {
+            self.add_first(data);
+            return;
+        }
+
+        let new_tail_node = Rc::new(RefCell::new(Some(Node {
             data,
             next: Rc::new(RefCell::new(None)),
         })));
 
-        *self.tail.borrow_mut();
+        if let Some(ref mut node) = current_tail_node {
+            node.next = Rc::clone(&new_tail_node);
+        }
+
+        *self.tail.borrow_mut() = current_tail_node;
+        self.tail = Rc::clone(&new_tail_node);
+        self.counter += 1;
     }
 
     pub fn remove_first(&mut self) -> Option<T> {
@@ -103,6 +115,13 @@ mod tests {
         let mut x = LinkedList::new();
         x.add_last(5);
         x.add_last(10);
+        assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
+    }
+
+    #[test]
+    fn add_last_no_elements() {
+        let mut x = LinkedList::new();
+        x.add_last(5);
         assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
     }
 
