@@ -28,6 +28,7 @@ impl<T> DoublyLinkedList<T> {
             counter: 0,
         }
     }
+    // Fix: update the previous first node so it points to the new node.
     pub fn add_first(&mut self, data: T) {
         let new_node = Rc::new(RefCell::new(Some(Node {
             data,
@@ -35,10 +36,12 @@ impl<T> DoublyLinkedList<T> {
             previous: Weak::new(),
         })));
 
-        // If this is the first element added to the list then also set the tail to be equal to this new node
-        if self.head.borrow().is_none() {
-            self.tail = Rc::clone(&new_node)
+        match *self.head.borrow_mut() {
+            Some(ref mut node) => node.previous = Rc::downgrade(&new_node),
+            // // If this is the first element added to the list then also set the tail to be equal to this new node
+            None => self.tail = Rc::clone(&new_node),
         }
+
         self.head = new_node;
         self.counter += 1;
     }
@@ -84,15 +87,22 @@ impl<T> DoublyLinkedList<T> {
         }
 
         let current_tail = self.tail.take();
-        if let Some(tail_node) = current_tail {
-            if let Some(previous_link) = tail_node.previous.upgrade() {
-                if let Some(previous_node) = previous_link.borrow().as_ref() {
-                    *previous_node.next.borrow_mut() = None;
-                    self.tail = Rc::clone(&previous_link);
-                }
-            }
+        let previous_link_option = current_tail.and_then(|tail_node| tail_node.previous.upgrade());
+        if previous_link_option.is_some() {
+            println!("is some");
+        } else {
+            println!("is none");
         }
-
+        match previous_link_option {
+            Some(previous_link) => {
+                println!("inside previous_link some");
+                self.tail = Rc::clone(&previous_link);
+            }
+            None => {
+                println!("returning");
+                return;
+            }
+        };
         self.counter -= 1;
     }
 
