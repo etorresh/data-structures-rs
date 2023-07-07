@@ -46,11 +46,11 @@ impl<T> DoublyLinkedList<T> {
     }
 
     pub fn add_last(&mut self, data: T) {
-        let mut current_tail_node = self.tail.take();
-        if current_tail_node.is_none() {
+        if self.counter == 0 {
             self.add_first(data);
             return;
         }
+        let mut current_tail_node = self.tail.take();
 
         let new_tail_node = Rc::new(RefCell::new(Some(Node {
             data,
@@ -76,27 +76,18 @@ impl<T> DoublyLinkedList<T> {
     }
 
     pub fn remove_last(&mut self) {
-        if self.counter == 0 {
-            return;
-        }
-
-        if self.counter == 1 {
+        // Handles empty list and list with a single element
+        if self.counter < 2 {
             self.remove_first();
             return;
         }
 
-        // this line removes the last node. The rest of the code is just to update the tail ref
-        let current_tail = self.tail.take();
+        self.tail = self
+            .tail
+            .take()
+            .and_then(|tail_node| tail_node.previous.upgrade())
+            .expect("Error: previous node of tail node is None");
 
-        let previous_link_option = current_tail.and_then(|tail_node| tail_node.previous.upgrade());
-        match previous_link_option {
-            Some(previous_link) => {
-                self.tail = Rc::clone(&previous_link);
-            }
-            None => {
-                return;
-            }
-        };
         self.counter -= 1;
     }
 
