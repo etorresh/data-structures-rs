@@ -1,29 +1,28 @@
 /**
- * Singly Linked List with tail pointer.
+ * Doubly Linked List.
  */
-// I had std::borrow::BorrowMut which was shadowing the method of the same name in RefCell.
-// I'm learning Rust so I thought the error was on my logic, my brain almost fucking fried.
-// https://github.com/rust-lang/rust/issues/39232 a PR was added a few months before this that makes the type check warn you lol
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::rc::Weak;
 
 type Link<T> = Rc<RefCell<Option<Node<T>>>>;
 struct Node<T> {
     data: T,
     next: Link<T>,
+    previous: Weak<RefCell<Option<Node<T>>>>,
 }
 
-pub struct LinkedList<T> {
+pub struct DoublyLinkedList<T> {
     head: Link<T>,
     tail: Link<T>,
     counter: usize,
 }
 
-impl<T> LinkedList<T> {
-    pub fn new() -> LinkedList<T> {
+impl<T> DoublyLinkedList<T> {
+    pub fn new() -> DoublyLinkedList<T> {
         let head = Rc::new(RefCell::new(None));
         let tail = Rc::clone(&head);
-        LinkedList {
+        DoublyLinkedList {
             head,
             tail,
             counter: 0,
@@ -33,6 +32,7 @@ impl<T> LinkedList<T> {
         let new_node = Rc::new(RefCell::new(Some(Node {
             data,
             next: Rc::clone(&self.head),
+            previous: Weak::new(),
         })));
 
         // If this is the first element added to the list then also set the tail to be equal to this new node
@@ -53,6 +53,7 @@ impl<T> LinkedList<T> {
         let new_tail_node = Rc::new(RefCell::new(Some(Node {
             data,
             next: Rc::new(RefCell::new(None)),
+            previous: Rc::downgrade(&self.tail),
         })));
 
         if let Some(ref mut node) = current_tail_node {
@@ -73,8 +74,7 @@ impl<T> LinkedList<T> {
     }
 
     pub fn remove_last(&mut self) {
-        // We can use counter - 2 to walk through the linked_list but I'm reading node.next to learn Rust
-        if (&self.head.borrow().as_ref()).is_none() {
+        if self.counter == 0 {
             return;
         }
 
@@ -83,24 +83,16 @@ impl<T> LinkedList<T> {
             return;
         }
 
-        let mut current = Rc::clone(&self.head);
-        loop {
-            let next_node = match current.borrow().as_ref() {
-                Some(node) => match node.next.borrow().as_ref() {
-                    Some(next_node) => match next_node.next.borrow().as_ref() {
-                        Some(_) => Rc::clone(&node.next),
-                        None => break,
-                    },
-                    None => break,
-                },
-                None => break,
-            };
-            current = next_node;
+        let current_tail = self.tail.take();
+        if let Some(tail_node) = current_tail {
+            if let Some(previous_link) = tail_node.previous.upgrade() {
+                if let Some(previous_node) = previous_link.borrow().as_ref() {
+                    *previous_node.next.borrow_mut() = None;
+                    self.tail = Rc::clone(&previous_link);
+                }
+            }
         }
 
-        (*current.borrow_mut()).as_mut().unwrap().next = Rc::new(RefCell::new(None));
-
-        self.tail = current;
         self.counter -= 1;
     }
 
@@ -118,8 +110,8 @@ impl<T> LinkedList<T> {
     }
 }
 
-pub struct IntoIter<T>(LinkedList<T>);
-impl<T> LinkedList<T> {
+pub struct IntoIter<T>(DoublyLinkedList<T>);
+impl<T> DoublyLinkedList<T> {
     pub fn into_iter(self) -> IntoIter<T> {
         IntoIter(self)
     }
@@ -138,7 +130,7 @@ mod tests {
 
     #[test]
     fn add_first() {
-        let mut x = LinkedList::new();
+        let mut x = DoublyLinkedList::new();
         x.add_first(10);
         x.add_first(5);
         assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
@@ -146,7 +138,7 @@ mod tests {
 
     #[test]
     fn add_last() {
-        let mut x = LinkedList::new();
+        let mut x = DoublyLinkedList::new();
         x.add_last(5);
         x.add_last(10);
         assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
@@ -154,14 +146,14 @@ mod tests {
 
     #[test]
     fn add_last_no_elements() {
-        let mut x = LinkedList::new();
+        let mut x = DoublyLinkedList::new();
         x.add_last(5);
         assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
     }
 
     #[test]
     fn add_last_to_existing_list() {
-        let mut x = LinkedList::new();
+        let mut x = DoublyLinkedList::new();
         x.add_first(10);
         x.add_first(5);
         x.add_last(15);
@@ -185,7 +177,7 @@ mod tests {
 
     #[test]
     fn add_last_multiple_elements() {
-        let mut x = LinkedList::new();
+        let mut x = DoublyLinkedList::new();
         x.add_last(5);
         x.add_last(10);
         x.add_last(15);
@@ -195,7 +187,7 @@ mod tests {
 
     #[test]
     fn add_last_check_counter() {
-        let mut x = LinkedList::new();
+        let mut x = DoublyLinkedList::new();
         x.add_last(5);
         x.add_last(10);
         x.add_last(15);
@@ -204,7 +196,7 @@ mod tests {
 
     #[test]
     fn add_last_single_element() {
-        let mut x = LinkedList::new();
+        let mut x = DoublyLinkedList::new();
         x.add_last(5);
         assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
         assert_eq!(x.tail.borrow().as_ref().unwrap().data, 5);
@@ -212,21 +204,21 @@ mod tests {
 
     #[test]
     fn remove_first_empty_list() {
-        let mut x: LinkedList<i32> = LinkedList::new();
+        let mut x: DoublyLinkedList<i32> = DoublyLinkedList::new();
         x.remove_first();
         assert_eq!(x.counter, 0);
     }
 
     #[test]
     fn remove_last_empty_list() {
-        let mut x: LinkedList<i32> = LinkedList::new();
+        let mut x: DoublyLinkedList<i32> = DoublyLinkedList::new();
         x.remove_last();
         assert_eq!(x.counter, 0);
     }
 
     #[test]
     fn remove_first_single_element() {
-        let mut x = LinkedList::new();
+        let mut x = DoublyLinkedList::new();
         x.add_first(5);
         x.remove_first();
         assert_eq!(x.counter, 0);
@@ -235,7 +227,7 @@ mod tests {
 
     #[test]
     fn remove_last_single_element() {
-        let mut x = LinkedList::new();
+        let mut x = DoublyLinkedList::new();
         x.add_first(5);
         x.remove_last();
         assert_eq!(x.counter, 0);
@@ -244,7 +236,7 @@ mod tests {
 
     #[test]
     fn remove_first_two_elements() {
-        let mut x = LinkedList::new();
+        let mut x = DoublyLinkedList::new();
         x.add_first(5);
         x.add_first(10);
         x.remove_first();
@@ -254,7 +246,7 @@ mod tests {
 
     #[test]
     fn remove_last_two_elements() {
-        let mut x = LinkedList::new();
+        let mut x = DoublyLinkedList::new();
         x.add_first(5);
         x.add_first(10);
         x.remove_last();
@@ -265,7 +257,7 @@ mod tests {
 
     #[test]
     fn into_iter() {
-        let mut list = LinkedList::new();
+        let mut list = DoublyLinkedList::new();
         list.add_first(1);
         list.add_first(2);
         list.add_first(3);
@@ -278,7 +270,7 @@ mod tests {
     }
     #[test]
     fn reverse() {
-        let mut list = LinkedList::new();
+        let mut list = DoublyLinkedList::new();
         list.add_first(3);
         list.add_first(2);
         list.add_first(1);
@@ -294,7 +286,7 @@ mod tests {
 
     #[test]
     fn counter() {
-        let mut list = LinkedList::new();
+        let mut list = DoublyLinkedList::new();
         for x in 1..100 {
             list.add_first(x);
         }
@@ -306,7 +298,7 @@ mod tests {
 
     #[test]
     fn remove_first_overflow() {
-        let mut list = LinkedList::new();
+        let mut list = DoublyLinkedList::new();
         list.add_first(1);
         list.remove_first();
         list.remove_first();
