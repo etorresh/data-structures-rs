@@ -28,7 +28,6 @@ impl<T> DoublyLinkedList<T> {
             counter: 0,
         }
     }
-    // Fix: update the previous first node so it points to the new node.
     pub fn add_first(&mut self, data: T) {
         let new_node = Rc::new(RefCell::new(Some(Node {
             data,
@@ -86,20 +85,15 @@ impl<T> DoublyLinkedList<T> {
             return;
         }
 
+        // this line removes the last node. The rest of the code is just to update the tail ref
         let current_tail = self.tail.take();
+
         let previous_link_option = current_tail.and_then(|tail_node| tail_node.previous.upgrade());
-        if previous_link_option.is_some() {
-            println!("is some");
-        } else {
-            println!("is none");
-        }
         match previous_link_option {
             Some(previous_link) => {
-                println!("inside previous_link some");
                 self.tail = Rc::clone(&previous_link);
             }
             None => {
-                println!("returning");
                 return;
             }
         };
