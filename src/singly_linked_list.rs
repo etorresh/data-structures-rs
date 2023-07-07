@@ -1,5 +1,9 @@
+/**
+ * Singly Linked List with tail pointer.
+ */
 // I had std::borrow::BorrowMut which was shadowing the method of the same name in RefCell.
 // I'm learning Rust so I thought the error was on my logic, my brain almost fucking fried.
+// https://github.com/rust-lang/rust/issues/39232 a PR was added a few months before this that makes the type check warn you lol
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -68,7 +72,27 @@ impl<T> LinkedList<T> {
         })
     }
 
-    pub fn remove_last(&mut self) {}
+    pub fn remove_last(&mut self) {
+        // Depends on counter. There must be a better way?
+        if (&self.head.borrow().as_ref()).is_none() {
+            return;
+        }
+
+        if self.counter == 1 {
+            self.remove_first();
+            return;
+        }
+
+        let mut current = Rc::clone(&self.head);
+        for _ in 0..(self.counter - 2) {
+            let next_node = (*current.borrow_mut()).as_ref().unwrap().next.clone();
+            current = next_node;
+        }
+
+        (*current.borrow_mut()).as_mut().unwrap().next = Rc::new(RefCell::new(None));
+        self.tail = current;
+        self.counter -= 1;
+    }
 
     pub fn reverse(&mut self) {
         let mut prev_link = None;
@@ -150,6 +174,33 @@ mod tests {
     }
 
     #[test]
+    fn add_last_multiple_elements() {
+        let mut x = LinkedList::new();
+        x.add_last(5);
+        x.add_last(10);
+        x.add_last(15);
+        assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
+        assert_eq!(x.tail.borrow().as_ref().unwrap().data, 15);
+    }
+
+    #[test]
+    fn add_last_check_counter() {
+        let mut x = LinkedList::new();
+        x.add_last(5);
+        x.add_last(10);
+        x.add_last(15);
+        assert_eq!(x.counter, 3);
+    }
+
+    #[test]
+    fn add_last_single_element() {
+        let mut x = LinkedList::new();
+        x.add_last(5);
+        assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
+        assert_eq!(x.tail.borrow().as_ref().unwrap().data, 5);
+    }
+
+    #[test]
     fn remove_first_empty_list() {
         let mut x: LinkedList<i32> = LinkedList::new();
         x.remove_first();
@@ -198,7 +249,8 @@ mod tests {
         x.add_first(10);
         x.remove_last();
         assert_eq!(x.counter, 1);
-        assert_eq!(x.head.borrow().as_ref().unwrap().data, 10);
+        let no_second_element = x.head.take().unwrap().next.borrow().is_none();
+        assert!(no_second_element);
     }
 
     #[test]

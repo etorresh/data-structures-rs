@@ -1,3 +1,3 @@
-mod linked_list;
+mod singly_linked_list;
 
-pub use linked_list::LinkedList;
+pub use singly_linked_list::LinkedList;
