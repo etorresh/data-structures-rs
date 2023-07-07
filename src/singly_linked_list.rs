@@ -84,8 +84,17 @@ impl<T> LinkedList<T> {
         }
 
         let mut current = Rc::clone(&self.head);
-        for _ in 0..(self.counter - 2) {
-            let next_node = (*current.borrow_mut()).as_ref().unwrap().next.clone();
+        loop {
+            let next_node = match current.borrow().as_ref() {
+                Some(node) => match node.next.borrow().as_ref() {
+                    Some(next_node) => match next_node.next.borrow().as_ref() {
+                        Some(_) => Rc::clone(&node.next),
+                        None => break,
+                    },
+                    None => break,
+                },
+                None => break,
+            };
             current = next_node;
         }
 
@@ -249,8 +258,8 @@ mod tests {
         x.add_first(10);
         x.remove_last();
         assert_eq!(x.counter, 1);
-        let no_second_element = x.head.take().unwrap().next.borrow().is_none();
-        assert!(no_second_element);
+        assert_eq!(x.remove_first().unwrap(), 10);
+        assert!(x.head.borrow().is_none());
     }
 
     #[test]
@@ -292,5 +301,13 @@ mod tests {
             list.remove_last();
         }
         assert_eq!(list.counter, 0);
+    }
+
+    #[test]
+    fn remove_first_overflow() {
+        let mut list = LinkedList::new();
+        list.add_first(1);
+        list.remove_first();
+        list.remove_first();
     }
 }
