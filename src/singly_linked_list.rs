@@ -98,6 +98,7 @@ impl<T> LinkedList<T> {
             current = next_node;
         }
 
+        
         (*current.borrow_mut()).as_mut().unwrap().next = Rc::new(RefCell::new(None));
 
         self.tail = current;
