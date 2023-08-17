@@ -4,7 +4,7 @@
 // I had std::borrow::BorrowMut which was shadowing the method of the same name in RefCell.
 // I'm learning Rust so I thought the error was on my logic, my brain almost fucking fried.
 // https://github.com/rust-lang/rust/issues/39232 a PR was added a few months before this that makes the type check warn you lol
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
 type Link<T> = Rc<RefCell<Option<Node<T>>>>;
@@ -98,7 +98,6 @@ impl<T> LinkedList<T> {
             current = next_node;
         }
 
-        
         (*current.borrow_mut()).as_mut().unwrap().next = Rc::new(RefCell::new(None));
 
         self.tail = current;
@@ -116,6 +115,10 @@ impl<T> LinkedList<T> {
             current_link = next_link;
         }
         self.head = Rc::new(RefCell::new(prev_link));
+    }
+
+    pub fn peek(&self) -> Option<&T> {
+        // We need Ref::map?
     }
 }
 
