@@ -1,5 +1,5 @@
 /**
- * Singly Linked List with tail pointer.
+ * Singly Linked List
  */
 // I had std::borrow::BorrowMut which was shadowing the method of the same name in RefCell.
 // I'm learning Rust so I thought the error was on my logic, my brain almost fucking fried.
@@ -7,7 +7,7 @@
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
-type Link<T> = Rc<RefCell<Option<Node<T>>>>;
+type Link<T> = Option<Box<Node<T>>>;
 struct Node<T> {
     data: T,
     next: Link<T>,
@@ -15,52 +15,33 @@ struct Node<T> {
 
 pub struct LinkedList<T> {
     head: Link<T>,
-    tail: Link<T>,
     counter: usize,
 }
 
 impl<T> LinkedList<T> {
     pub fn new() -> LinkedList<T> {
-        let head = Rc::new(RefCell::new(None));
-        let tail = Rc::clone(&head);
-        LinkedList {
-            head,
-            tail,
-            counter: 0,
-        }
+        let head = None;
+        LinkedList { head, counter: 0 }
     }
     pub fn add_first(&mut self, data: T) {
-        let new_node = Rc::new(RefCell::new(Some(Node {
+        let new_node = Some(Box::new(Node {
             data,
-            next: Rc::clone(&self.head),
-        })));
+            next: self.head.take(),
+        }));
 
-        // If this is the first element added to the list then also set the tail to be equal to this new node
-        if self.head.borrow().is_none() {
-            self.tail = Rc::clone(&new_node)
-        }
         self.head = new_node;
         self.counter += 1;
     }
 
     pub fn add_last(&mut self, data: T) {
-        let mut current_tail_node = self.tail.take();
-        if current_tail_node.is_none() {
-            self.add_first(data);
-            return;
+        let new_tail_node = Some(Box::new(Node { data, next: None }));
+
+        let mut current_link = &mut self.head;
+        while let Some(node) = current_link {
+            current_link = &mut node.next;
         }
+        *current_link = new_tail_node;
 
-        let new_tail_node = Rc::new(RefCell::new(Some(Node {
-            data,
-            next: Rc::new(RefCell::new(None)),
-        })));
-
-        if let Some(ref mut node) = current_tail_node {
-            node.next = Rc::clone(&new_tail_node);
-        }
-
-        *self.tail.borrow_mut() = current_tail_node;
-        self.tail = Rc::clone(&new_tail_node);
         self.counter += 1;
     }
 
@@ -73,8 +54,7 @@ impl<T> LinkedList<T> {
     }
 
     pub fn remove_last(&mut self) {
-        // We can use counter - 2 to walk through the linked_list but I'm reading node.next to learn Rust
-        if (&self.head.borrow().as_ref()).is_none() {
+        if self.head.is_none() {
             return;
         }
 
@@ -83,24 +63,18 @@ impl<T> LinkedList<T> {
             return;
         }
 
-        let mut current = Rc::clone(&self.head);
-        loop {
-            let next_node = match current.borrow().as_ref() {
-                Some(node) => match node.next.borrow().as_ref() {
-                    Some(next_node) => match next_node.next.borrow().as_ref() {
-                        Some(_) => Rc::clone(&node.next),
-                        None => break,
-                    },
-                    None => break,
-                },
-                None => break,
-            };
-            current = next_node;
+        let mut current_link = &mut self.head;
+        for _ in 0..(self.counter - 2) {
+            if let Some(node) = current_link {
+                current_link = &mut node.next;
+            } else {
+                panic!("Error remove_last: list count is inconsistent with actual number of nodes. 'self.counter' is bigger than the actual number of nodes");
+            }
         }
 
-        (*current.borrow_mut()).as_mut().unwrap().next = Rc::new(RefCell::new(None));
-
-        self.tail = current;
+        if let Some(node) = current_link {
+            node.next = None;
+        }
         self.counter -= 1;
     }
 
@@ -110,15 +84,15 @@ impl<T> LinkedList<T> {
 
         while let Some(mut current_node) = current_link {
             let next_link = current_node.next.take();
-            current_node.next = Rc::new(RefCell::new(prev_link));
+            current_node.next = prev_link;
             prev_link = Some(current_node);
             current_link = next_link;
         }
-        self.head = Rc::new(RefCell::new(prev_link));
+        self.head = prev_link;
     }
 
     pub fn peek(&self) -> Option<&T> {
-        // We need Ref::map?
+        self.head.as_ref().map(|node| &node.data)
     }
 }
 
@@ -145,7 +119,7 @@ mod tests {
         let mut x = LinkedList::new();
         x.add_first(10);
         x.add_first(5);
-        assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
+        assert_eq!(x.head.as_ref().unwrap().data, 5);
     }
 
     #[test]
@@ -153,14 +127,14 @@ mod tests {
         let mut x = LinkedList::new();
         x.add_last(5);
         x.add_last(10);
-        assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
+        assert_eq!(x.head.as_ref().unwrap().data, 5);
     }
 
     #[test]
     fn add_last_no_elements() {
         let mut x = LinkedList::new();
         x.add_last(5);
-        assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
+        assert_eq!(x.head.as_ref().unwrap().data, 5);
     }
 
     #[test]
@@ -171,15 +145,12 @@ mod tests {
         x.add_last(15);
         assert_eq!(
             x.head
-                .borrow()
                 .as_ref()
                 .unwrap()
                 .next
-                .borrow()
                 .as_ref()
                 .unwrap()
                 .next
-                .borrow()
                 .as_ref()
                 .unwrap()
                 .data,
@@ -193,8 +164,7 @@ mod tests {
         x.add_last(5);
         x.add_last(10);
         x.add_last(15);
-        assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
-        assert_eq!(x.tail.borrow().as_ref().unwrap().data, 15);
+        assert_eq!(x.head.as_ref().unwrap().data, 5);
     }
 
     #[test]
@@ -210,8 +180,7 @@ mod tests {
     fn add_last_single_element() {
         let mut x = LinkedList::new();
         x.add_last(5);
-        assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
-        assert_eq!(x.tail.borrow().as_ref().unwrap().data, 5);
+        assert_eq!(x.head.as_ref().unwrap().data, 5);
     }
 
     #[test]
@@ -234,7 +203,7 @@ mod tests {
         x.add_first(5);
         x.remove_first();
         assert_eq!(x.counter, 0);
-        assert!(x.head.borrow().is_none());
+        assert!(x.head.is_none());
     }
 
     #[test]
@@ -243,7 +212,7 @@ mod tests {
         x.add_first(5);
         x.remove_last();
         assert_eq!(x.counter, 0);
-        assert!(x.head.borrow().is_none());
+        assert!(x.head.is_none());
     }
 
     #[test]
@@ -253,7 +222,7 @@ mod tests {
         x.add_first(10);
         x.remove_first();
         assert_eq!(x.counter, 1);
-        assert_eq!(x.head.borrow().as_ref().unwrap().data, 5);
+        assert_eq!(x.head.as_ref().unwrap().data, 5);
     }
 
     #[test]
@@ -264,7 +233,7 @@ mod tests {
         x.remove_last();
         assert_eq!(x.counter, 1);
         assert_eq!(x.remove_first().unwrap(), 10);
-        assert!(x.head.borrow().is_none());
+        assert!(x.head.is_none());
     }
 
     #[test]
