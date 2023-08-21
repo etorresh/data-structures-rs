@@ -44,6 +44,9 @@ impl<K: Hash, V> HashMap<K, V> {
         let bucket = &mut self.hash_array[index];
 
         // Come back here after implementing iter_mut in LinkedList
+        //      - if the bucket is empty add the key and value
+        //      - if the bucket already has the key then replace it
+        //      - if the bucket doesn't have the key then add it
 
         self.size += 1;
         None

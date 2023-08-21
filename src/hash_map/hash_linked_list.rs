@@ -1,9 +1,12 @@
 /**
- * Singly Linked List
+ * Singly Linked List modified to work wih a Hash Map
  */
 
-// Iterator structs
-pub struct IntoIter<T>(LinkedList<T>);
+// Iterator strucs
+pub struct IntoIter<T: PartialEq>(LinkedList<T>);
+pub struct IterMut<'a, T: PartialEq> {
+    current_link: &'a mut Link<T>,
+}
 
 type Link<T> = Option<Box<Node<T>>>;
 struct Node<T> {
@@ -11,12 +14,12 @@ struct Node<T> {
     next: Link<T>,
 }
 
-pub struct LinkedList<T> {
+pub struct LinkedList<T: PartialEq> {
     head: Link<T>,
     counter: usize,
 }
 
-impl<T> LinkedList<T> {
+impl<T: PartialEq> LinkedList<T> {
     pub fn new() -> LinkedList<T> {
         let head = None;
         LinkedList { head, counter: 0 }
@@ -93,12 +96,31 @@ impl<T> LinkedList<T> {
         self.head.as_ref().map(|node| &node.data)
     }
 
+    pub fn contains(&self, x: &T) -> bool {
+        let mut contains = false;
+
+        let mut current_link = &self.head;
+        while let Some(current_node) = current_link {
+            if current_node.data == x {
+                contains = true;
+                break;
+            }
+            current_link = &current_node.next;
+        }
+
+        contains
+    }
     pub fn into_iter(self) -> IntoIter<T> {
         IntoIter(self)
     }
+    pub fn iter_mut(&mut self) -> IterMut<T> {
+        IterMut {
+            current_link: &mut self.head,
+        }
+    }
 }
 
-impl<T> Iterator for IntoIter<T> {
+impl<T: PartialEq> Iterator for IntoIter<T> {
     type Item = T;
     fn next(&mut self) -> Option<Self::Item> {
         self.0.remove_first()
