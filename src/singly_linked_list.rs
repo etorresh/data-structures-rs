@@ -1,11 +1,6 @@
 /**
  * Singly Linked List
  */
-// I had std::borrow::BorrowMut which was shadowing the method of the same name in RefCell.
-// I'm learning Rust so I thought the error was on my logic, my brain almost fucking fried.
-// https://github.com/rust-lang/rust/issues/39232 a PR was added a few months before this that makes the type check warn you lol
-use std::cell::{Ref, RefCell};
-use std::rc::Rc;
 
 type Link<T> = Option<Box<Node<T>>>;
 struct Node<T> {

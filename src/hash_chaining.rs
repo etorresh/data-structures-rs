@@ -1,26 +1,36 @@
-// a hash implementation that uses chaining to avoid collisions. Uses a hasher from the standard library. TO DO: Implement my own hasher
+// a hash implementation that uses chaining to avoid collisions.
 use crate::singly_linked_list::LinkedList;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::hash_map::RandomState;
-use std::ops::Index;
 
-pub struct HashMap<T> {
-    hash_array: Vec<LinkedList<T>>,
+pub struct HashMap<K, V> {
+    hash_array: Vec<LinkedList<(K, V)>>,
 }
 
-impl<T> HashMap<T> {
-    fn insert() {}
-    fn remove() {}
-    fn get() {}
-}
+impl<K, V> HashMap<K, V> {
+    pub fn new() -> HashMap<K, V> {
+        let hash_array = Vec::new();
+        HashMap { hash_array }
+    }
+    pub fn with_capacity(capacity: usize) -> HashMap<K, V> {
+        let hash_array = (0..capacity).map(|_| LinkedList::new()).collect();
+        HashMap { hash_array }
+    }
 
-// impl<T> Index<String> for HashMap<T> {
-//     type Output = T;
-//     fn index(self, index: String) -> &Self::Output {
-//         let x = self.hash_array[0].remove_first();
-//         match &x {}
-//     }
-// }
+    // Returns old value if key was previously present
+    fn insert(&mut self, key: K, value: V) -> Option<V> {
+        None
+    }
+
+    fn get(&self, key: K) -> Option<V> {
+        None
+    }
+
+    // Returns removed value
+    fn remove(&mut self, key: K) -> Option<V> {
+        None
+    }
+}
 
 #[cfg(test)]
 mod tests {

@@ -1,6 +1,10 @@
 /**
  * Doubly Linked List.
+ * Compared to my singly_linked_list implementation this one adds a tail pointer, and a pointer to the previous node.
  */
+// I had std::borrow::BorrowMut which was shadowing the method of the same name in RefCell.
+// I'm learning Rust so I thought the error was on my logic, my brain almost fucking fried.
+// https://github.com/rust-lang/rust/issues/39232 a PR was added a few months before this that makes the type check warn you lol
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::rc::Weak;
