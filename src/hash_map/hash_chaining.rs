@@ -1,5 +1,5 @@
 // a hash implementation that uses chaining to avoid collisions.
-use crate::singly_linked_list::LinkedList;
+use crate::hash_map::hash_linked_list::HashLinkedList;
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{self, Hash, Hasher},

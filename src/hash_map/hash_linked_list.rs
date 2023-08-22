@@ -3,28 +3,28 @@
  */
 
 // Iterator strucs
-pub struct IntoIter<T: PartialEq>(LinkedList<T>);
-pub struct IterMut<'a, T: PartialEq> {
-    current_link: &'a mut Link<T>,
+pub struct IntoIter<K: PartialEq, V>(HashLinkedList<K, V>);
+pub struct IterMut<'a, K: PartialEq, V> {
+    current_link: &'a mut Link<K, V>,
 }
 
-type Link<T> = Option<Box<Node<T>>>;
-struct Node<T> {
-    data: T,
-    next: Link<T>,
+type Link<K: PartialEq, V> = Option<Box<Node<K, V>>>;
+struct Node<K: PartialEq, V> {
+    data: V,
+    next: Link<K, V>,
 }
 
-pub struct LinkedList<T: PartialEq> {
-    head: Link<T>,
+pub struct HashLinkedList<K: PartialEq, V> {
+    head: Link<K, V>,
     counter: usize,
 }
 
-impl<T: PartialEq> LinkedList<T> {
-    pub fn new() -> LinkedList<T> {
+impl<K: PartialEq, V> HashLinkedList<K, V> {
+    pub fn new() -> HashLinkedList<K, V> {
         let head = None;
-        LinkedList { head, counter: 0 }
+        HashLinkedList { head, counter: 0 }
     }
-    pub fn add_first(&mut self, data: T) {
+    pub fn add_first(&mut self, data: V) {
         let new_node = Some(Box::new(Node {
             data,
             next: self.head.take(),
@@ -34,7 +34,7 @@ impl<T: PartialEq> LinkedList<T> {
         self.counter += 1;
     }
 
-    pub fn add_last(&mut self, data: T) {
+    pub fn add_last(&mut self, data: V) {
         let new_tail_node = Some(Box::new(Node { data, next: None }));
 
         let mut current_link = &mut self.head;
@@ -46,7 +46,7 @@ impl<T: PartialEq> LinkedList<T> {
         self.counter += 1;
     }
 
-    pub fn remove_first(&mut self) -> Option<T> {
+    pub fn remove_first(&mut self) -> Option<V> {
         self.head.take().map(|node| {
             self.head = node.next;
             self.counter -= 1;
@@ -92,11 +92,11 @@ impl<T: PartialEq> LinkedList<T> {
         self.head = prev_link;
     }
 
-    pub fn peek(&self) -> Option<&T> {
+    pub fn peek(&self) -> Option<&V> {
         self.head.as_ref().map(|node| &node.data)
     }
 
-    pub fn contains(&self, x: &T) -> bool {
+    pub fn contains(&self, x: &V) -> bool {
         let mut contains = false;
 
         let mut current_link = &self.head;
@@ -110,17 +110,17 @@ impl<T: PartialEq> LinkedList<T> {
 
         contains
     }
-    pub fn into_iter(self) -> IntoIter<T> {
+    pub fn into_iter(self) -> IntoIter<V, K> {
         IntoIter(self)
     }
-    pub fn iter_mut(&mut self) -> IterMut<T> {
+    pub fn iter_mut(&mut self) -> IterMut<V, K> {
         IterMut {
             current_link: &mut self.head,
         }
     }
 }
 
-impl<T: PartialEq> Iterator for IntoIter<T> {
+impl<K: PartialEq, V> Iterator for IntoIter<K, V> {
     type Item = T;
     fn next(&mut self) -> Option<Self::Item> {
         self.0.remove_first()
