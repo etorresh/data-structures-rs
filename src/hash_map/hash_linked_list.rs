@@ -10,6 +10,7 @@ pub struct IterMut<'a, K: PartialEq, V> {
 
 type Link<K: PartialEq, V> = Option<Box<Node<K, V>>>;
 struct Node<K: PartialEq, V> {
+    key: K,
     data: V,
     next: Link<K, V>,
 }
@@ -24,8 +25,9 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
         let head = None;
         HashLinkedList { head, counter: 0 }
     }
-    pub fn add_first(&mut self, data: V) {
+    pub fn add_first(&mut self, key: K, data: V) {
         let new_node = Some(Box::new(Node {
+            key,
             data,
             next: self.head.take(),
         }));
@@ -34,8 +36,12 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
         self.counter += 1;
     }
 
-    pub fn add_last(&mut self, data: V) {
-        let new_tail_node = Some(Box::new(Node { data, next: None }));
+    pub fn add_last(&mut self, key: K, data: V) {
+        let new_tail_node = Some(Box::new(Node {
+            key,
+            data,
+            next: None,
+        }));
 
         let mut current_link = &mut self.head;
         while let Some(node) = current_link {
@@ -96,12 +102,12 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
         self.head.as_ref().map(|node| &node.data)
     }
 
-    pub fn contains(&self, x: &V) -> bool {
+    pub fn contains_key(&self, x: &K) -> bool {
         let mut contains = false;
 
         let mut current_link = &self.head;
         while let Some(current_node) = current_link {
-            if current_node.data == x {
+            if &current_node.key == x {
                 contains = true;
                 break;
             }
@@ -110,10 +116,10 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
 
         contains
     }
-    pub fn into_iter(self) -> IntoIter<V, K> {
+    pub fn into_iter(self) -> IntoIter<K, V> {
         IntoIter(self)
     }
-    pub fn iter_mut(&mut self) -> IterMut<V, K> {
+    pub fn iter_mut(&mut self) -> IterMut<K, V> {
         IterMut {
             current_link: &mut self.head,
         }
@@ -121,7 +127,7 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
 }
 
 impl<K: PartialEq, V> Iterator for IntoIter<K, V> {
-    type Item = T;
+    type Item = V;
     fn next(&mut self) -> Option<Self::Item> {
         self.0.remove_first()
     }
@@ -133,33 +139,33 @@ mod tests {
 
     #[test]
     fn add_first() {
-        let mut x = LinkedList::new();
-        x.add_first(10);
-        x.add_first(5);
+        let mut x = HashLinkedList::new();
+        x.add_first("", 10);
+        x.add_first("", 5);
         assert_eq!(x.head.as_ref().unwrap().data, 5);
     }
 
     #[test]
     fn add_last() {
-        let mut x = LinkedList::new();
-        x.add_last(5);
-        x.add_last(10);
+        let mut x = HashLinkedList::new();
+        x.add_last("", 5);
+        x.add_last("", 10);
         assert_eq!(x.head.as_ref().unwrap().data, 5);
     }
 
     #[test]
     fn add_last_no_elements() {
-        let mut x = LinkedList::new();
-        x.add_last(5);
+        let mut x = HashLinkedList::new();
+        x.add_last("", 5);
         assert_eq!(x.head.as_ref().unwrap().data, 5);
     }
 
     #[test]
     fn add_last_to_existing_list() {
-        let mut x = LinkedList::new();
-        x.add_first(10);
-        x.add_first(5);
-        x.add_last(15);
+        let mut x = HashLinkedList::new();
+        x.add_first("", 10);
+        x.add_first("", 5);
+        x.add_last("", 15);
         assert_eq!(
             x.head
                 .as_ref()
@@ -177,47 +183,47 @@ mod tests {
 
     #[test]
     fn add_last_multiple_elements() {
-        let mut x = LinkedList::new();
-        x.add_last(5);
-        x.add_last(10);
-        x.add_last(15);
+        let mut x = HashLinkedList::new();
+        x.add_last("", 5);
+        x.add_last("", 10);
+        x.add_last("", 15);
         assert_eq!(x.head.as_ref().unwrap().data, 5);
     }
 
     #[test]
     fn add_last_check_counter() {
-        let mut x = LinkedList::new();
-        x.add_last(5);
-        x.add_last(10);
-        x.add_last(15);
+        let mut x = HashLinkedList::new();
+        x.add_last("", 5);
+        x.add_last("", 10);
+        x.add_last("", 15);
         assert_eq!(x.counter, 3);
     }
 
     #[test]
     fn add_last_single_element() {
-        let mut x = LinkedList::new();
-        x.add_last(5);
+        let mut x = HashLinkedList::new();
+        x.add_last("", 5);
         assert_eq!(x.head.as_ref().unwrap().data, 5);
     }
 
     #[test]
     fn remove_first_empty_list() {
-        let mut x: LinkedList<i32> = LinkedList::new();
+        let mut x: HashLinkedList<String, i32> = HashLinkedList::new();
         x.remove_first();
         assert_eq!(x.counter, 0);
     }
 
     #[test]
     fn remove_last_empty_list() {
-        let mut x: LinkedList<i32> = LinkedList::new();
+        let mut x: HashLinkedList<String, i32> = HashLinkedList::new();
         x.remove_last();
         assert_eq!(x.counter, 0);
     }
 
     #[test]
     fn remove_first_single_element() {
-        let mut x = LinkedList::new();
-        x.add_first(5);
+        let mut x = HashLinkedList::new();
+        x.add_first("", 5);
         x.remove_first();
         assert_eq!(x.counter, 0);
         assert!(x.head.is_none());
@@ -225,8 +231,8 @@ mod tests {
 
     #[test]
     fn remove_last_single_element() {
-        let mut x = LinkedList::new();
-        x.add_first(5);
+        let mut x = HashLinkedList::new();
+        x.add_first("", 5);
         x.remove_last();
         assert_eq!(x.counter, 0);
         assert!(x.head.is_none());
@@ -234,9 +240,9 @@ mod tests {
 
     #[test]
     fn remove_first_two_elements() {
-        let mut x = LinkedList::new();
-        x.add_first(5);
-        x.add_first(10);
+        let mut x = HashLinkedList::new();
+        x.add_first("", 5);
+        x.add_first("", 10);
         x.remove_first();
         assert_eq!(x.counter, 1);
         assert_eq!(x.head.as_ref().unwrap().data, 5);
@@ -244,9 +250,9 @@ mod tests {
 
     #[test]
     fn remove_last_two_elements() {
-        let mut x = LinkedList::new();
-        x.add_first(5);
-        x.add_first(10);
+        let mut x = HashLinkedList::new();
+        x.add_first("", 5);
+        x.add_first("", 10);
         x.remove_last();
         assert_eq!(x.counter, 1);
         assert_eq!(x.remove_first().unwrap(), 10);
@@ -255,10 +261,10 @@ mod tests {
 
     #[test]
     fn into_iter() {
-        let mut list = LinkedList::new();
-        list.add_first(1);
-        list.add_first(2);
-        list.add_first(3);
+        let mut list = HashLinkedList::new();
+        list.add_first("", 1);
+        list.add_first("", 2);
+        list.add_first("", 3);
 
         let mut iter = list.into_iter();
         assert_eq!(iter.next(), Some(3));
@@ -268,10 +274,10 @@ mod tests {
     }
     #[test]
     fn reverse() {
-        let mut list = LinkedList::new();
-        list.add_first(3);
-        list.add_first(2);
-        list.add_first(1);
+        let mut list = HashLinkedList::new();
+        list.add_first("", 3);
+        list.add_first("", 2);
+        list.add_first("", 1);
 
         list.reverse();
 
@@ -284,9 +290,9 @@ mod tests {
 
     #[test]
     fn counter() {
-        let mut list = LinkedList::new();
+        let mut list = HashLinkedList::new();
         for x in 1..100 {
-            list.add_first(x);
+            list.add_first("", x);
         }
         for _ in 1..100 {
             list.remove_last();
@@ -296,8 +302,8 @@ mod tests {
 
     #[test]
     fn remove_first_overflow() {
-        let mut list = LinkedList::new();
-        list.add_first(1);
+        let mut list = HashLinkedList::new();
+        list.add_first("", 1);
         list.remove_first();
         list.remove_first();
     }

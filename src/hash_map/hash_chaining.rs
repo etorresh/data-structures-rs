@@ -7,12 +7,12 @@ use std::{
 
 const MAX_LOAD_FACTOR: f32 = 0.75;
 
-pub struct HashMap<K: Hash, V> {
-    hash_array: Vec<LinkedList<(K, V)>>,
+pub struct HashMap<K: PartialEq + Hash, V> {
+    hash_array: Vec<HashLinkedList<K, V>>,
     size: usize,
 }
 
-impl<K: Hash, V> HashMap<K, V> {
+impl<K: PartialEq + Hash, V> HashMap<K, V> {
     pub fn new() -> HashMap<K, V> {
         let hash_array = Vec::new();
         HashMap {
@@ -21,7 +21,7 @@ impl<K: Hash, V> HashMap<K, V> {
         }
     }
     pub fn with_capacity(capacity: usize) -> HashMap<K, V> {
-        let hash_array = (0..capacity).map(|_| LinkedList::new()).collect();
+        let hash_array = (0..capacity).map(|_| HashLinkedList::new()).collect();
         HashMap {
             hash_array,
             size: 0,
