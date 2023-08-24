@@ -154,6 +154,7 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
                 Some(node) if &node.key == key => {
                     let mut removed_node = current_link.take();
                     *current_link = removed_node.as_mut().and_then(|node| node.next.take());
+                    self.counter -= 1;
                     return removed_node.map(|node| node.value);
                 }
                 Some(node) => {
@@ -373,5 +374,58 @@ mod tests {
         x.add_last("Test3", 15);
         assert_eq!(x.head.as_ref().unwrap().value, 5);
         assert_eq!(x.head.as_ref().unwrap().key, "Test1")
+    }
+
+    #[test]
+    fn remove_key_not_present() {
+        let mut x = HashLinkedList::new();
+        x.add_first("Test1", 5);
+        x.add_first("Test2", 10);
+        let result = x.remove(&"Test3");
+        assert!(result.is_none());
+        assert_eq!(x.counter, 2);
+    }
+
+    #[test]
+    fn remove_only_element() {
+        let mut x = HashLinkedList::new();
+        x.add_first("Test1", 5);
+        let removed_value = x.remove(&"Test1").unwrap();
+        assert_eq!(removed_value, 5);
+        assert_eq!(x.counter, 0);
+        assert!(x.head.is_none());
+    }
+
+    #[test]
+    fn remove_first_element() {
+        let mut x = HashLinkedList::new();
+        x.add_first("Test1", 5);
+        x.add_first("Test2", 10);
+        x.add_first("Test3", 15);
+        let removed_value = x.remove(&"Test3").unwrap();
+        assert_eq!(removed_value, 15);
+        assert_eq!(x.counter, 2);
+    }
+
+    #[test]
+    fn remove_middle_element() {
+        let mut x = HashLinkedList::new();
+        x.add_first("Test1", 5);
+        x.add_first("Test2", 10);
+        x.add_first("Test3", 15);
+        let removed_value = x.remove(&"Test2").unwrap();
+        assert_eq!(removed_value, 10);
+        assert_eq!(x.counter, 2);
+    }
+
+    #[test]
+    fn remove_last_element() {
+        let mut x = HashLinkedList::new();
+        x.add_first("Test1", 5);
+        x.add_first("Test2", 10);
+        x.add_first("Test3", 15);
+        let removed_value = x.remove(&"Test1").unwrap();
+        assert_eq!(removed_value, 5);
+        assert_eq!(x.counter, 2);
     }
 }
