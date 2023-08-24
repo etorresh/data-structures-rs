@@ -43,7 +43,7 @@ impl<K: PartialEq + Hash, V> HashMap<K, V> {
 
         let bucket = &mut self.hash_array[index];
 
-        let old_value = bucket.insert_or_update(key, value);
+        let old_value = bucket.insert(key, value);
 
         if old_value.is_none() {
             self.size += 1;
@@ -51,8 +51,13 @@ impl<K: PartialEq + Hash, V> HashMap<K, V> {
         old_value
     }
 
-    pub fn get(&self, key: K) -> Option<V> {
-        None
+    pub fn get(&self, key: &K) -> Option<&V> {
+        if self.hash_array.len() == 0 {
+            return None;
+        }
+        let index = self.bucket_index(&key);
+        let bucket = &self.hash_array[index];
+        bucket.get(key)
     }
 
     // Returns removed value
@@ -76,7 +81,40 @@ mod tests {
     use super::*;
 
     #[test]
-    fn hash_test() {
-        assert!(true);
+    fn hash_insert() {
+        let mut hash_map: HashMap<String, i32> = HashMap::new();
+        assert_eq!(hash_map.insert("key1".to_string(), 42), None); // New insertion
+        assert_eq!(hash_map.insert("key1".to_string(), 100), Some(42)); // Updating existing key
+    }
+
+    #[test]
+    fn hash_insert_large_data() {
+        // Test for larger data to ensure there's no crash/panic
+        let mut hash_map: HashMap<String, i32> = HashMap::new();
+
+        for i in 0..10000 {
+            assert_eq!(hash_map.insert(format!("key{}", i), i), None);
+        }
+
+        for i in 0..10000 {
+            assert_eq!(hash_map.insert(format!("key{}", i), i + 10000), Some(i));
+        }
+    }
+
+    #[test]
+    fn hash_get() {
+        let mut hash_map: HashMap<String, i32> = HashMap::new();
+
+        // Initially, the hashmap is empty, so any key should return None.
+        assert_eq!(hash_map.get(&"key1".to_string()), None);
+
+        // Insert a key-value pair.
+        hash_map.insert("key1".to_string(), 42);
+
+        // Now, when we get the value using the same key, it should return the inserted value.
+        assert_eq!(hash_map.get(&"key1".to_string()), Some(&42));
+
+        // Querying with a different key should return None.
+        assert_eq!(hash_map.get(&"key2".to_string()), None);
     }
 }

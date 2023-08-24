@@ -13,7 +13,7 @@ pub struct IterMut<'a, K: PartialEq, V> {
 type Link<K: PartialEq, V> = Option<Box<Node<K, V>>>;
 struct Node<K: PartialEq, V> {
     key: K,
-    data: V,
+    value: V,
     next: Link<K, V>,
 }
 
@@ -27,10 +27,10 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
         let head = None;
         HashLinkedList { head, counter: 0 }
     }
-    pub fn add_first(&mut self, key: K, data: V) {
+    pub fn add_first(&mut self, key: K, value: V) {
         let new_node = Some(Box::new(Node {
             key,
-            data,
+            value,
             next: self.head.take(),
         }));
 
@@ -38,10 +38,10 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
         self.counter += 1;
     }
 
-    pub fn add_last(&mut self, key: K, data: V) {
+    pub fn add_last(&mut self, key: K, value: V) {
         let new_tail_node = Some(Box::new(Node {
             key,
-            data,
+            value,
             next: None,
         }));
 
@@ -58,7 +58,7 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
         self.head.take().map(|node| {
             self.head = node.next;
             self.counter -= 1;
-            node.data
+            node.value
         })
     }
 
@@ -101,15 +101,15 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
     }
 
     pub fn peek(&self) -> Option<&V> {
-        self.head.as_ref().map(|node| &node.data)
+        self.head.as_ref().map(|node| &node.value)
     }
 
-    pub fn insert_or_update(&mut self, key: K, value: V) -> Option<V> {
+    pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         let mut current_link = &mut self.head;
 
         while let Some(node) = current_link {
             if node.key == key {
-                let old_value = std::mem::replace(&mut node.data, value);
+                let old_value = std::mem::replace(&mut node.value, value);
                 return Some(old_value);
             }
             current_link = &mut node.next;
@@ -117,13 +117,50 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
 
         let new_node = Some(Box::new(Node {
             key,
-            data: value,
+            value: value,
             next: None,
         }));
 
         *current_link = new_node;
         self.counter += 1;
         None
+    }
+
+    pub fn get(&self, key: &K) -> Option<&V> {
+        let mut current_link = &self.head;
+
+        while let Some(node) = current_link {
+            if &node.key == key {
+                return Some(&node.value);
+            }
+            current_link = &node.next;
+        }
+        None
+    }
+
+    /*
+    Implementing remove helped me understand the borrow checker differences between while let Some(x) and loop+match
+    Main points
+    - When using while let, y remains borrowed for the entirety of the loop's body, preventing other operations on it within that scope.
+    - On the other hand, match just takes a temporary borrow to check patterns and bind values. Once inside a successful arm, the borrow is released.
+    - In a successful match arm, the variables bound by the pattern (like x in Some(x)) directly access the inner values, and the original matched value
+    (y in this case) is left unborrowed and free for other uses.
+    */
+    pub fn remove(&mut self, key: &K) -> Option<V> {
+        let mut current_link = &mut self.head;
+        loop {
+            match current_link {
+                None => return None,
+                Some(node) if &node.key == key => {
+                    let mut removed_node = current_link.take();
+                    *current_link = removed_node.as_mut().and_then(|node| node.next.take());
+                    return removed_node.map(|node| node.value);
+                }
+                Some(node) => {
+                    current_link = &mut node.next;
+                }
+            }
+        }
     }
 
     pub fn into_iter(self) -> IntoIter<K, V> {
@@ -152,7 +189,7 @@ mod tests {
         let mut x = HashLinkedList::new();
         x.add_first("", 10);
         x.add_first("", 5);
-        assert_eq!(x.head.as_ref().unwrap().data, 5);
+        assert_eq!(x.head.as_ref().unwrap().value, 5);
     }
 
     #[test]
@@ -160,14 +197,14 @@ mod tests {
         let mut x = HashLinkedList::new();
         x.add_last("", 5);
         x.add_last("", 10);
-        assert_eq!(x.head.as_ref().unwrap().data, 5);
+        assert_eq!(x.head.as_ref().unwrap().value, 5);
     }
 
     #[test]
     fn add_last_no_elements() {
         let mut x = HashLinkedList::new();
         x.add_last("", 5);
-        assert_eq!(x.head.as_ref().unwrap().data, 5);
+        assert_eq!(x.head.as_ref().unwrap().value, 5);
     }
 
     #[test]
@@ -186,7 +223,7 @@ mod tests {
                 .next
                 .as_ref()
                 .unwrap()
-                .data,
+                .value,
             15
         );
     }
@@ -197,7 +234,7 @@ mod tests {
         x.add_last("", 5);
         x.add_last("", 10);
         x.add_last("", 15);
-        assert_eq!(x.head.as_ref().unwrap().data, 5);
+        assert_eq!(x.head.as_ref().unwrap().value, 5);
     }
 
     #[test]
@@ -213,7 +250,7 @@ mod tests {
     fn add_last_single_element() {
         let mut x = HashLinkedList::new();
         x.add_last("", 5);
-        assert_eq!(x.head.as_ref().unwrap().data, 5);
+        assert_eq!(x.head.as_ref().unwrap().value, 5);
     }
 
     #[test]
@@ -255,7 +292,7 @@ mod tests {
         x.add_first("", 10);
         x.remove_first();
         assert_eq!(x.counter, 1);
-        assert_eq!(x.head.as_ref().unwrap().data, 5);
+        assert_eq!(x.head.as_ref().unwrap().value, 5);
     }
 
     #[test]
@@ -334,7 +371,7 @@ mod tests {
         x.add_last("Test1", 5);
         x.add_last("Test2", 10);
         x.add_last("Test3", 15);
-        assert_eq!(x.head.as_ref().unwrap().data, 5);
+        assert_eq!(x.head.as_ref().unwrap().value, 5);
         assert_eq!(x.head.as_ref().unwrap().key, "Test1")
     }
 }
