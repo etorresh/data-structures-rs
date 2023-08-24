@@ -8,6 +8,9 @@ fn main() {
     let y = x.borrow();
     let z = test(&x);
     println!("{z}");
+    let a = Some(String::from("test"));
+    if let Some(text) = &a {}
+    a;
 }
 
 fn test(x: &Rc<RefCell<String>>) -> Ref<String> {

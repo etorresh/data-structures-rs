@@ -1,3 +1,5 @@
+use std::thread::current;
+
 /**
  * Singly Linked List modified to work wih a Hash Map
  */
@@ -102,20 +104,28 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
         self.head.as_ref().map(|node| &node.data)
     }
 
-    pub fn contains_key(&self, x: &K) -> bool {
-        let mut contains = false;
+    pub fn insert_or_update(&mut self, key: K, value: V) -> Option<V> {
+        let mut current_link = &mut self.head;
 
-        let mut current_link = &self.head;
-        while let Some(current_node) = current_link {
-            if &current_node.key == x {
-                contains = true;
-                break;
+        while let Some(node) = current_link {
+            if node.key == key {
+                let old_value = std::mem::replace(&mut node.data, value);
+                return Some(old_value);
             }
-            current_link = &current_node.next;
+            current_link = &mut node.next;
         }
 
-        contains
+        let new_node = Some(Box::new(Node {
+            key,
+            data: value,
+            next: None,
+        }));
+
+        *current_link = new_node;
+        self.counter += 1;
+        None
     }
+
     pub fn into_iter(self) -> IntoIter<K, V> {
         IntoIter(self)
     }
@@ -306,5 +316,25 @@ mod tests {
         list.add_first("", 1);
         list.remove_first();
         list.remove_first();
+    }
+
+    #[test]
+    fn add_first_keys() {
+        let mut x = HashLinkedList::new();
+        x.add_first("Test1", 5);
+        x.add_first("Test2", 10);
+        x.remove_first();
+        assert_eq!(x.counter, 1);
+        assert_eq!(x.head.as_ref().unwrap().key, "Test1");
+    }
+
+    #[test]
+    fn contains_key() {
+        let mut x = HashLinkedList::new();
+        x.add_last("Test1", 5);
+        x.add_last("Test2", 10);
+        x.add_last("Test3", 15);
+        assert_eq!(x.head.as_ref().unwrap().data, 5);
+        assert_eq!(x.head.as_ref().unwrap().key, "Test1")
     }
 }

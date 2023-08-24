@@ -2,7 +2,7 @@
 use crate::hash_map::hash_linked_list::HashLinkedList;
 use std::{
     collections::hash_map::DefaultHasher,
-    hash::{self, Hash, Hasher},
+    hash::{Hash, Hasher},
 };
 
 const MAX_LOAD_FACTOR: f32 = 0.75;
@@ -43,13 +43,12 @@ impl<K: PartialEq + Hash, V> HashMap<K, V> {
 
         let bucket = &mut self.hash_array[index];
 
-        // Come back here after implementing iter_mut in LinkedList
-        //      - if the bucket is empty add the key and value
-        //      - if the bucket already has the key then replace it
-        //      - if the bucket doesn't have the key then add it
+        let old_value = bucket.insert_or_update(key, value);
 
-        self.size += 1;
-        None
+        if old_value.is_none() {
+            self.size += 1;
+        }
+        old_value
     }
 
     pub fn get(&self, key: K) -> Option<V> {
