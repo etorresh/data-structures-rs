@@ -1,8 +1,13 @@
 /**
- * Singly Linked List modified to work wih a Hash Map
+ * A singly linked list optimized for use in a hash map.
+ *
+ * This structure is designed to be used as buckets for our hashmap. As the
+ * hashmap encounters collisions on keys, the colliding elements are placed
+ * into one of these linked lists, hence the need for the key to be stored
+ * alongside the value.
  */
 
-type Link<K: PartialEq, V> = Option<Box<Node<K, V>>>;
+type Link<K, V> = Option<Box<Node<K, V>>>;
 struct Node<K: PartialEq, V> {
     key: K,
     value: V,
@@ -13,12 +18,18 @@ pub struct HashLinkedList<K: PartialEq, V> {
     head: Link<K, V>,
 }
 
+// Iterator to consume the linked list and produce elements.
+pub struct IntoIter<K: PartialEq, V>(HashLinkedList<K, V>);
+
 impl<K: PartialEq, V> HashLinkedList<K, V> {
+    // Creates a new, empty linked list.
     pub fn new() -> HashLinkedList<K, V> {
         let head = None;
         HashLinkedList { head }
     }
 
+    // Inserts a key-value pair into the linked list.
+    // If the key already exists, the old value is returned.
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         let mut current_link = &mut self.head;
 
@@ -32,7 +43,7 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
 
         let new_node = Some(Box::new(Node {
             key,
-            value: value,
+            value,
             next: None,
         }));
 
@@ -40,6 +51,7 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
         None
     }
 
+    // Fetches a reference to the value associated with the provided key.
     pub fn get(&self, key: &K) -> Option<&V> {
         let mut current_link = &self.head;
 
@@ -52,14 +64,8 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
         None
     }
 
-    /*
-    Implementing remove helped me understand the borrow checker differences between while let Some(x) and loop+match
-    Main points
-    - When using while let, y remains borrowed for the entirety of the loop's body, preventing other operations on it within that scope.
-    - On the other hand, match just takes a temporary borrow to check patterns and bind values. Once inside a successful arm, the borrow is released.
-    - In a successful match arm, the variables bound by the pattern (like x in Some(x)) directly access the inner values, and the original matched value
-    (y in this case) is left unborrowed and free for other uses.
-    */
+    // Removes the node associated with the provided key and returns its value.
+    // If no such node exists, returns None.
     pub fn remove(&mut self, key: &K) -> Option<V> {
         let mut current_link = &mut self.head;
         loop {
@@ -67,6 +73,9 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
                 None => return None,
                 Some(node) if &node.key == key => {
                     let mut removed_node = current_link.take();
+                    /* We can dereference current_link and asign a new value in the line below because "node"  is dropped at this  point, since
+                    we don't use it anywhere else, and node was the only borrow on *current_link.  This is not possible in while let Some(x) = y because
+                    *current_link is borrowed through the scope of the whole loop. */
                     *current_link = removed_node.as_mut().and_then(|node| node.next.take());
                     return removed_node.map(|node| node.value);
                 }
@@ -75,6 +84,26 @@ impl<K: PartialEq, V> HashLinkedList<K, V> {
                 }
             }
         }
+    }
+
+    // Removes and returns the first key-value pair from the list. Only used to consume the list through IntoIter.
+    fn remove_first(&mut self) -> Option<(K, V)> {
+        self.head.take().map(|node| {
+            self.head = node.next;
+            (node.key, node.value)
+        })
+    }
+
+    // Consumes the list and returns an iterator over the list.
+    pub fn into_iter(self) -> IntoIter<K, V> {
+        IntoIter(self)
+    }
+}
+
+impl<K: PartialEq, V> Iterator for IntoIter<K, V> {
+    type Item = (K, V);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.remove_first()
     }
 }
 
