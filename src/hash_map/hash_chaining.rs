@@ -26,18 +26,22 @@ impl<K: PartialEq + Hash, V> HashMap<K, V> {
 
     // Creates a hash map with a specific capacity.
     pub fn with_capacity(capacity: usize) -> HashMap<K, V> {
-        let hash_array = (0..capacity).map(|_| HashLinkedList::new()).collect();
+        let hash_array = Self::initialize_hash_array(capacity);
         HashMap {
             hash_array,
             size: 0,
         }
     }
 
+    fn initialize_hash_array(capacity: usize) -> Vec<HashLinkedList<K, V>> {
+        (0..capacity).map(|_| HashLinkedList::new()).collect()
+    }
+
     // Inserts a key-value pair into the hash map. If the key already exists,
     // the old value is returned.
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         if self.hash_array.len() == 0 {
-            *self = HashMap::with_capacity(2);
+            self.hash_array = Self::initialize_hash_array(2);
         }
 
         if ((self.size as f32 + 1.0) / self.hash_array.len() as f32) >= MAX_LOAD_FACTOR {
@@ -93,8 +97,7 @@ impl<K: PartialEq + Hash, V> HashMap<K, V> {
     fn rehash(&mut self) {
         let new_capacity = self.hash_array.len() * 2;
 
-        let new_hash_array: Vec<HashLinkedList<K, V>> =
-            (0..new_capacity).map(|_| HashLinkedList::new()).collect();
+        let new_hash_array: Vec<HashLinkedList<K, V>> = Self::initialize_hash_array(new_capacity);
 
         let old_hash_array = std::mem::replace(&mut self.hash_array, new_hash_array);
         self.size = 0;
