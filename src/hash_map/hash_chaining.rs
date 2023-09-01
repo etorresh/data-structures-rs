@@ -97,7 +97,7 @@ impl<K: PartialEq + Hash, V> HashMap<K, V> {
     fn rehash(&mut self) {
         let new_capacity = self.hash_array.len() * 2;
 
-        let new_hash_array: Vec<HashLinkedList<K, V>> = Self::initialize_hash_array(new_capacity);
+        let new_hash_array = Self::initialize_hash_array(new_capacity);
 
         let old_hash_array = std::mem::replace(&mut self.hash_array, new_hash_array);
         self.size = 0;
