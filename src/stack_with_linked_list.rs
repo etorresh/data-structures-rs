@@ -42,8 +42,6 @@ impl<T> StackLinkedList<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::LinkedList;
-
     use super::StackLinkedList;
 
     #[test]
