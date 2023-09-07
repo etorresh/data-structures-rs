@@ -1,9 +1,13 @@
 mod binary_heap;
-mod doubly_linked_list;
 mod hash_map;
-mod singly_linked_list;
+mod linked_list_doubly;
+mod linked_list_singly;
+mod stack_with_linked_list;
+mod stack_with_vec;
 
 pub use binary_heap::Heap;
-pub use doubly_linked_list::DoublyLinkedList;
 pub use hash_map::HashMap;
-pub use singly_linked_list::LinkedList;
+pub use linked_list_doubly::DoublyLinkedList;
+pub use linked_list_singly::LinkedList;
+pub use stack_with_linked_list::StackLinkedList;
+pub use stack_with_vec::StackVec;

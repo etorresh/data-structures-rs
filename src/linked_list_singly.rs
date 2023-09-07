@@ -93,6 +93,19 @@ impl<T> LinkedList<T> {
         self.head.as_ref().map(|node| &node.data)
     }
 
+    pub fn peek_mut(&mut self) -> Option<&mut T> {
+        self.head.as_mut().map(|node| &mut node.data)
+    }
+
+    pub fn size(&self) -> usize {
+        self.counter
+    }
+
+    pub fn clear(&mut self) {
+        self.head = None;
+        self.counter = 0;
+    }
+
     pub fn into_iter(self) -> IntoIter<T> {
         IntoIter(self)
     }
