@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 /**
  * Singly linked List with a tail pointer
  * Makes add_last o(1)
@@ -66,8 +65,15 @@ impl<T> LinkedListSinglyTail<T> {
             if self.head.is_none() {
                 self.tail = None;
             }
-            // Continue here
-            let data = std::mem::take(node.borrow_mut().data);
+
+            // Consume Rc
+            // At this point, only the head or tail can have references to the first node.
+            // Since we've handled the head above and ensured there are no other references,
+            // it should be safe to unwrap the Rc. If not, something unexpected has occurred.
+            let data = match Rc::try_unwrap(node) {
+                Ok(refcell) => refcell.into_inner().data,
+                Err(_) => panic!("Remove first: at this point no other ref to node should exist."),
+            };
             data
         })
     }
