@@ -1,12 +1,8 @@
 /**
  * Singly linked List with a tail pointer
  * Makes add_last o(1)
- * To do:
- * - peek
- * - peek_mut
  */
-// A bad safe deque peek
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
 type Link<T> = Option<Rc<RefCell<Node<T>>>>;
@@ -139,6 +135,18 @@ impl<T> LinkedListSinglyTail<T> {
         self.head = None;
         self.tail = None;
         self.counter = 0;
+    }
+
+    pub fn peek(&self) -> Option<Ref<T>> {
+        self.head
+            .as_ref()
+            .map(|node| Ref::map(node.borrow(), |node| &node.data))
+    }
+
+    pub fn peek_mut(&mut self) -> Option<RefMut<T>> {
+        self.head
+            .as_ref()
+            .map(|node| RefMut::map(node.borrow_mut(), |node| &mut node.data))
     }
 }
 

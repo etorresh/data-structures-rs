@@ -30,4 +30,12 @@ impl<T> QueueVec<T> {
     pub fn clear(&mut self) {
         self.list.clear();
     }
+
+    pub fn peek(&self) -> Option<&T> {
+        self.list.front()
+    }
+
+    pub fn peek_mut(&mut self) -> Option<&mut T> {
+        self.list.front_mut()
+    }
 }

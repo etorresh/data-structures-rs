@@ -21,14 +21,6 @@ impl<T> QueueLinkedList<T> {
         self.list.remove_first()
     }
 
-    pub fn peek(&self) -> Option<Ref<T>> {
-        todo!()
-    }
-
-    pub fn peek_mut(&mut self) -> Option<RefMut<T>> {
-        todo!()
-    }
-
     pub fn is_empty(&self) -> bool {
         self.list.size() == 0
     }
@@ -39,5 +31,13 @@ impl<T> QueueLinkedList<T> {
 
     pub fn clear(&mut self) {
         self.list.clear();
+    }
+
+    pub fn peek(&self) -> Option<Ref<T>> {
+        self.list.peek()
+    }
+
+    pub fn peek_mut(&mut self) -> Option<RefMut<T>> {
+        self.list.peek_mut()
     }
 }
