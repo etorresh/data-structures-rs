@@ -1,16 +1,13 @@
 /**
  * Singly linked List with a tail pointer
  * Makes add_last o(1)
- * To do: 
- * - figure out how to implement remove_last
+ * To do:
  * - peek
  * - peek_mut
  */
-
- // A bad safe deque peek
+// A bad safe deque peek
 use std::cell::RefCell;
 use std::rc::Rc;
-
 
 type Link<T> = Option<Rc<RefCell<Node<T>>>>;
 struct Node<T> {
@@ -86,39 +83,51 @@ impl<T> LinkedListSinglyTail<T> {
     }
 
     pub fn remove_last(&mut self) {
-        // if self.head.is_none() {
-        //     return;
-        // }
+        if self.head.is_none() {
+            return;
+        }
 
-        // if self.counter == 1 {
-        //     self.remove_first();
-        //     return;
-        // }
+        if self.counter == 1 {
+            self.remove_first();
+            return;
+        }
 
-        // // Move to the second last node in the list
-        // let mut current_link = Rc::clone(self.head.as_mut().unwrap());
-        // for _ in 0..(self.counter - 2) {
-        //     let tmp = current_link.borrow_mut().next.as_mut().unwrap();
-        //     current_link = Rc::clone(tmp);
-        // }
+        // Move to the second last node in the list
+        let mut current_link = Rc::clone(self.head.as_mut().unwrap());
+        for _ in 0..(self.counter - 2) {
+            let next_link: Option<Rc<RefCell<Node<T>>>>;
 
-        // // current_link
-        // //     .expect("Error remove last: at this point current_link should always be valid")
-        // //     .borrow_mut()
-        // //     .next = None;
-        // self.counter -= 1;
+            // Use a scoped block to explicitly end the borrow from `current_link`.
+            // This is necessary as NLL can't deduce that `node` isn't
+            // used after the 'map' operation, which leads to a borrow checker conflict when updating `current_link`.
+
+            {
+                let node = current_link.borrow();
+                next_link = node.next.as_ref().map(Rc::clone);
+            }
+
+            if let Some(link) = next_link {
+                current_link = link;
+            } else {
+                panic!("Error remove_last: list count is inconsistent with number of nodes. 'self.counter' is bigger than the actual number of nodes");
+            }
+        }
+
+        current_link.borrow_mut().next = None;
+        self.counter -= 1;
     }
 
     pub fn reverse(&mut self) {
         let mut prev_link = None;
         let mut current_link = self.head.take();
 
-        while let Some(mut current_node) = current_link {
+        while let Some(current_node) = current_link {
             let next_link = current_node.borrow_mut().next.take();
             current_node.borrow_mut().next = prev_link;
             prev_link = Some(current_node);
             current_link = next_link;
         }
+        std::mem::swap(&mut self.head, &mut self.tail);
         self.head = prev_link;
     }
 
@@ -181,13 +190,16 @@ mod tests {
         x.add_first(5);
         x.add_last(15);
         assert_eq!(
-            x.head.as_ref()
+            x.head
+                .as_ref()
                 .unwrap()
                 .borrow()
-                .next.as_ref()
+                .next
+                .as_ref()
                 .unwrap()
                 .borrow()
-                .next.as_ref()
+                .next
+                .as_ref()
                 .unwrap()
                 .borrow()
                 .data,
@@ -229,12 +241,12 @@ mod tests {
         assert_eq!(x.counter, 0);
     }
 
-    // #[test]
-    // fn remove_last_empty_list() {
-    //     let mut x: LinkedListSinglyTail<i32> = LinkedListSinglyTail::new();
-    //     x.remove_last();
-    //     assert_eq!(x.counter, 0);
-    // }
+    #[test]
+    fn remove_last_empty_list() {
+        let mut x: LinkedListSinglyTail<i32> = LinkedListSinglyTail::new();
+        x.remove_last();
+        assert_eq!(x.counter, 0);
+    }
 
     #[test]
     fn remove_first_single_element() {
@@ -245,35 +257,35 @@ mod tests {
         assert!(x.head.is_none());
     }
 
-    // #[test]
-    // fn remove_last_single_element() {
-    //     let mut x = LinkedListSinglyTail::new();
-    //     x.add_first(5);
-    //     x.remove_last();
-    //     assert_eq!(x.counter, 0);
-    //     assert!(x.head.is_none());
-    // }
+    #[test]
+    fn remove_last_single_element() {
+        let mut x = LinkedListSinglyTail::new();
+        x.add_first(5);
+        x.remove_last();
+        assert_eq!(x.counter, 0);
+        assert!(x.head.is_none());
+    }
 
-    // #[test]
-    // fn remove_first_two_elements() {
-    //     let mut x = LinkedListSinglyTail::new();
-    //     x.add_first(5);
-    //     x.add_first(10);
-    //     x.remove_first();
-    //     assert_eq!(x.counter, 1);
-    //     assert_eq!(x.head.unwrap().borrow().data, 5);
-    // }
+    #[test]
+    fn remove_first_two_elements() {
+        let mut x = LinkedListSinglyTail::new();
+        x.add_first(5);
+        x.add_first(10);
+        x.remove_first();
+        assert_eq!(x.counter, 1);
+        assert_eq!(x.head.unwrap().borrow().data, 5);
+    }
 
-    // #[test]
-    // fn remove_last_two_elements() {
-    //     let mut x = LinkedListSinglyTail::new();
-    //     x.add_first(5);
-    //     x.add_first(10);
-    //     x.remove_last();
-    //     assert_eq!(x.counter, 1);
-    //     assert_eq!(x.remove_first().unwrap(), 10);
-    //     assert!(x.head.is_none());
-    // }
+    #[test]
+    fn remove_last_two_elements() {
+        let mut x = LinkedListSinglyTail::new();
+        x.add_first(5);
+        x.add_first(10);
+        x.remove_last();
+        assert_eq!(x.counter, 1);
+        assert_eq!(x.remove_first().unwrap(), 10);
+        assert!(x.head.is_none());
+    }
 
     #[test]
     fn into_iter() {
@@ -288,33 +300,33 @@ mod tests {
         assert_eq!(iter.next(), Some(1));
         assert_eq!(iter.next(), None);
     }
-    // #[test]
-    // fn reverse() {
-    //     let mut list = LinkedListSinglyTail::new();
-    //     list.add_first(3);
-    //     list.add_first(2);
-    //     list.add_first(1);
+    #[test]
+    fn reverse() {
+        let mut list = LinkedListSinglyTail::new();
+        list.add_first(3);
+        list.add_first(2);
+        list.add_first(1);
 
-    //     list.reverse();
+        list.reverse();
 
-    //     let mut iter = list.into_iter();
+        let mut iter = list.into_iter();
 
-    //     assert_eq!(iter.next(), Some(3));
-    //     assert_eq!(iter.next(), Some(2));
-    //     assert_eq!(iter.next(), Some(1));
-    // }
+        assert_eq!(iter.next(), Some(3));
+        assert_eq!(iter.next(), Some(2));
+        assert_eq!(iter.next(), Some(1));
+    }
 
-    // #[test]
-    // fn counter() {
-    //     let mut list = LinkedListSinglyTail::new();
-    //     for x in 1..100 {
-    //         list.add_first(x);
-    //     }
-    //     for _ in 1..100 {
-    //         list.remove_last();
-    //     }
-    //     assert_eq!(list.counter, 0);
-    // }
+    #[test]
+    fn counter() {
+        let mut list = LinkedListSinglyTail::new();
+        for x in 1..100 {
+            list.add_first(x);
+        }
+        for _ in 1..100 {
+            list.remove_last();
+        }
+        assert_eq!(list.counter, 0);
+    }
 
     #[test]
     fn remove_first_overflow() {
