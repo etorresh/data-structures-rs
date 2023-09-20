@@ -18,3 +18,4 @@ pub use queue_with_linked_list::QueueLinkedList;
 pub use queue_with_vec::QueueVec;
 pub use stack_with_linked_list::StackLinkedList;
 pub use stack_with_vec::StackVec;
+pub use tree_avl::TreeAVL;
