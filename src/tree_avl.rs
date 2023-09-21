@@ -1,12 +1,17 @@
 /*
 AVL Tree
-- Difference in height between left and right must always be <= 1.
+ Difference in height between left and right must always be <= 1.
+ There are multiple approaches to handle equal values in AVL trees:
+ 1) Ignore equal values, 2) Allow duplicates, and 3) Store a counter for duplicates.
+ For this implementation, I choose to ignore equal values to prioritize and simplify
+ the focus on the tree's rebalancing logic.
 */
 
-use std::cmp::Ordering;
+use std::cmp::{self, Ordering};
 struct Node<T> {
     left: Option<Box<Node<T>>>,
     right: Option<Box<Node<T>>>,
+    height: usize,
     data: T,
 }
 
@@ -27,6 +32,7 @@ impl<T: Ord> TreeAVL<T> {
         let new_node = Node {
             left: None,
             right: None,
+            height: 0,
             data,
         };
         match &mut self.root {
@@ -48,7 +54,12 @@ impl<T: Ord> TreeAVL<T> {
                 // add to left side
                 match &mut parent.left {
                     Some(node) => {
-                        return Self::insert_recursive(node, new_node);
+                        let inserted = Self::insert_recursive(node, new_node);
+                        if inserted {
+                            // rebalance
+                            node.height = Self::height(node);
+                        }
+                        inserted
                     }
                     None => {
                         parent.left = Some(Box::new(new_node));
@@ -59,6 +70,7 @@ impl<T: Ord> TreeAVL<T> {
             Ordering::Equal => return false,
             Ordering::Greater => {
                 // add to right side
+                // symmetric
                 match &mut parent.right {
                     Some(node) => {
                         return Self::insert_recursive(node, new_node);
@@ -71,6 +83,21 @@ impl<T: Ord> TreeAVL<T> {
             }
         }
     }
+
+    fn height(node: &Box<Node<T>>) -> usize {
+        if node.left.is_none() && node.right.is_none() {
+            return 0;
+        }
+        1 + cmp::max(
+            node.left.as_ref().map_or(0, |node| node.height),
+            node.right.as_ref().map_or(0, |node| node.height),
+        )
+    }
+
+    fn rotate_ll() {}
+    fn rotate_rr() {}
+    fn rotate_lr() {}
+    fn rotate_rl() {}
 
     pub fn remove() {}
 
