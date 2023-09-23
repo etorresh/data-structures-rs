@@ -48,40 +48,37 @@ impl<T: Ord> TreeAVL<T> {
         }
     }
 
-    fn insert_recursive(parent: &mut Node<T>, new_node: Node<T>) -> bool {
-        match &new_node.data.cmp(&parent.data) {
+    fn insert_recursive(parent: &mut Box<Node<T>>, new_node: Node<T>) -> bool {
+        let inserted = match &new_node.data.cmp(&parent.data) {
             Ordering::Less => {
                 // add to left side
                 match &mut parent.left {
-                    Some(node) => {
-                        let inserted = Self::insert_recursive(node, new_node);
-                        if inserted {
-                            // rebalance
-                            node.height = Self::height(node);
-                        }
-                        inserted
-                    }
+                    Some(node) => Self::insert_recursive(node, new_node),
                     None => {
                         parent.left = Some(Box::new(new_node));
-                        return true;
+                        true
                     }
                 }
             }
-            Ordering::Equal => return false,
+            Ordering::Equal => false,
             Ordering::Greater => {
                 // add to right side
-                // symmetric
                 match &mut parent.right {
-                    Some(node) => {
-                        return Self::insert_recursive(node, new_node);
-                    }
+                    Some(node) => Self::insert_recursive(node, new_node),
                     None => {
                         parent.right = Some(Box::new(new_node));
-                        return true;
+                        true
                     }
                 }
             }
+        };
+
+        if inserted {
+            parent.height = Self::height(parent);
+            Self::check_balance(parent);
         }
+
+        inserted
     }
 
     fn height(node: &Box<Node<T>>) -> usize {
@@ -93,6 +90,22 @@ impl<T: Ord> TreeAVL<T> {
             node.right.as_ref().map_or(0, |node| node.height),
         )
     }
+
+    fn balance_factor(node: &Box<Node<T>>) -> isize {
+        let height_left = node.left.as_ref().map_or(0, Self::height);
+        let height_right = node.right.as_ref().map_or(0, Self::height);
+        let balance_factor: isize = (height_left - height_right).try_into().unwrap();
+        balance_factor
+    }
+
+    fn check_balance(node: &mut Box<Node<T>>) {
+        let balance_factor = Self::balance_factor(node);
+        if balance_factor > 1 || balance_factor < -1 {
+            Self::rebalance(node, balance_factor);
+        }
+    }
+
+    fn rebalance(node: &mut Box<Node<T>>, balance_factor: isize) {}
 
     fn rotate_ll() {}
     fn rotate_rr() {}
