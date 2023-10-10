@@ -8,6 +8,7 @@ AVL Tree
 */
 
 use std::cmp::{self, Ordering};
+
 struct Node<T> {
     left: Option<Box<Node<T>>>,
     right: Option<Box<Node<T>>>,
@@ -29,6 +30,7 @@ impl<T: Ord> TreeAVL<T> {
     }
 
     pub fn insert(&mut self, data: T) {
+        println!("starting insertion");
         let new_node = Node {
             left: None,
             right: None,
@@ -77,7 +79,6 @@ impl<T: Ord> TreeAVL<T> {
             parent.height = Self::height(parent);
             Self::check_balance(parent);
         }
-
         inserted
     }
 
@@ -86,8 +87,8 @@ impl<T: Ord> TreeAVL<T> {
             return 0;
         }
         1 + cmp::max(
-            node.left.as_ref().map_or(0, |node| node.height),
-            node.right.as_ref().map_or(0, |node| node.height),
+            node.left.as_ref().map_or(0, |child| child.height),
+            node.right.as_ref().map_or(0, |child| child.height),
         )
     }
 
@@ -95,11 +96,12 @@ impl<T: Ord> TreeAVL<T> {
         let height_left: isize = node
             .left
             .as_ref()
-            .map_or(-1, |node| node.height.try_into().unwrap());
+            .map_or(-1, |child| child.height.try_into().unwrap());
         let height_right: isize = node
             .right
             .as_ref()
-            .map_or(-1, |node| node.height.try_into().unwrap());
+            .map_or(-1, |child| child.height.try_into().unwrap());
+
         let balance_factor: isize = height_left - height_right;
         balance_factor
     }
@@ -123,9 +125,14 @@ impl<T: Ord> TreeAVL<T> {
     Balance factor is zero:
      */
     fn rebalance(node: &mut Box<Node<T>>, balance_factor: isize) {
+        println!("rebalance");
         // Too heavy on the left side
         if balance_factor > 1 {
             let left_child_balance_factor = Self::balance_factor(node.left.as_ref().unwrap());
+            println!(
+                "too heavy on left side. child balance is {}",
+                left_child_balance_factor
+            );
             if left_child_balance_factor >= 1 {
                 Self::rotate_rr(node);
             } else if left_child_balance_factor <= -1 {
@@ -137,6 +144,10 @@ impl<T: Ord> TreeAVL<T> {
         // Too heavy on the right side
         else if balance_factor < -1 {
             let right_child_balance_factor = Self::balance_factor(node.right.as_ref().unwrap());
+            println!(
+                "too heavy on right side. child balance is {}",
+                right_child_balance_factor
+            );
             if right_child_balance_factor <= -1 {
                 Self::rotate_ll();
             } else if right_child_balance_factor >= 1 {
@@ -151,18 +162,51 @@ impl<T: Ord> TreeAVL<T> {
     // Rotate right when the problem is on the left subtree.
 
     // Balance factor of the current node is < -1, and balance factor of the right child is <= -1.
-    fn rotate_ll() {}
+    fn rotate_ll() {
+        println!("rotate left");
+    }
 
     // Balance factor of the current node is > 1, and balance factor of the right child is <= -1.
-    fn rotate_rr(node: &mut Box<Node<T>>) {}
+    fn rotate_rr(node: &mut Box<Node<T>>) {
+        println!("rotate right");
+
+        let mut left_child = node.left.take().unwrap();
+        node.left = left_child.right.take();
+        std::mem::swap(&mut left_child, node);
+
+        // Update height and then attach as right child of node
+        left_child.height = Self::height(&left_child);
+        node.right = Some(left_child);
+
+        // Update height
+        node.height = Self::height(node);
+    }
 
     // Balance factor of the current node is < -1, and balance factor of the right child is >= 1.
-    fn rotate_lr() {}
+    fn rotate_lr() {
+        println!("rotate left right");
+    }
 
     // Balance factor of the current node is > 1, and balance factor of the right child is >= 1.
-    fn rotate_rl() {}
+    fn rotate_rl() {
+        println!("rotate right left");
+    }
 
     pub fn remove() {}
 
     pub fn search() {}
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn rotate_rr_three_elements() {
+        let mut x: TreeAVL<i32> = TreeAVL::new();
+        x.insert(10);
+        x.insert(7);
+        x.insert(5);
+        assert_eq!(x.root.as_ref().unwrap().data, 7);
+        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().data, 5);
+        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().data, 10);
+    }
 }
