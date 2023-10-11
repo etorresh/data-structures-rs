@@ -136,7 +136,7 @@ impl<T: Ord> TreeAVL<T> {
             if left_child_balance_factor >= 1 {
                 Self::rotate_rr(node);
             } else if left_child_balance_factor <= -1 {
-                Self::rotate_rl();
+                Self::rotate_lr(node);
             } else {
                 panic!("reached impossible case child balance factor is between -1 and 1 non-inclusive");
             }
@@ -149,9 +149,9 @@ impl<T: Ord> TreeAVL<T> {
                 right_child_balance_factor
             );
             if right_child_balance_factor <= -1 {
-                Self::rotate_ll();
+                Self::rotate_ll(node);
             } else if right_child_balance_factor >= 1 {
-                Self::rotate_lr();
+                Self::rotate_rl(node);
             } else {
                 panic!("reached impossible case child balance factor is between -1 and 1 non-inclusive");
             }
@@ -162,8 +162,19 @@ impl<T: Ord> TreeAVL<T> {
     // Rotate right when the problem is on the left subtree.
 
     // Balance factor of the current node is < -1, and balance factor of the right child is <= -1.
-    fn rotate_ll() {
+    fn rotate_ll(node: &mut Box<Node<T>>) {
         println!("rotate left");
+
+        let mut right_child = node.right.take().unwrap();
+        node.right = right_child.left.take();
+        std::mem::swap(&mut right_child, node);
+
+        // Update height and then attach as right child of node
+        right_child.height = Self::height(&right_child);
+        node.left = Some(right_child);
+
+        // Update height
+        node.height = Self::height(node);
     }
 
     // Balance factor of the current node is > 1, and balance factor of the right child is <= -1.
@@ -183,13 +194,24 @@ impl<T: Ord> TreeAVL<T> {
     }
 
     // Balance factor of the current node is < -1, and balance factor of the right child is >= 1.
-    fn rotate_lr() {
+    fn rotate_lr(node: &mut Box<Node<T>>) {
         println!("rotate left right");
+
+        Self::rotate_ll(node.left.as_mut().unwrap()); // change this line
+        Self::rotate_rr(node);
     }
 
     // Balance factor of the current node is > 1, and balance factor of the right child is >= 1.
-    fn rotate_rl() {
+    fn rotate_rl(node: &mut Box<Node<T>>) {
         println!("rotate right left");
+
+        let mut right_child = node.right.take().unwrap();
+        let mut right_child_left_child = right_child.left.take().unwrap();
+        right_child.left = right_child_left_child.right.take();
+        right_child_left_child.right = Some(right_child);
+        node.right = Some(right_child_left_child);
+
+        Self::rotate_ll(node);
     }
 
     pub fn remove() {}
@@ -199,6 +221,7 @@ impl<T: Ord> TreeAVL<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn rotate_rr_three_elements() {
         let mut x: TreeAVL<i32> = TreeAVL::new();
@@ -208,5 +231,229 @@ mod tests {
         assert_eq!(x.root.as_ref().unwrap().data, 7);
         assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().data, 5);
         assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().data, 10);
+    }
+
+    #[test]
+    fn rotate_ll_three_elements() {
+        let mut x: TreeAVL<i32> = TreeAVL::new();
+        x.insert(5);
+        x.insert(7);
+        x.insert(10);
+        assert_eq!(x.root.as_ref().unwrap().data, 7);
+        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().data, 5);
+        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().data, 10);
+    }
+
+    #[test]
+    fn rotate_rl_three_elements() {
+        let mut x: TreeAVL<i32> = TreeAVL::new();
+        x.insert(5);
+        x.insert(10);
+        x.insert(7);
+        assert_eq!(x.root.as_ref().unwrap().data, 7);
+        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().data, 5);
+        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().data, 10);
+    }
+
+    #[test]
+    fn rotate_lr_three_elements() {
+        let mut x: TreeAVL<i32> = TreeAVL::new();
+        x.insert(10);
+        x.insert(5);
+        x.insert(7);
+        assert_eq!(x.root.as_ref().unwrap().data, 7);
+        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().data, 5);
+        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().data, 10);
+    }
+
+    #[test]
+    fn insert_complete_rr() {
+        let mut x: TreeAVL<i32> = TreeAVL::new();
+        x.insert(100);
+        x.insert(40);
+        x.insert(150);
+        x.insert(200);
+        x.insert(50);
+        x.insert(26);
+        x.insert(27);
+        x.insert(25);
+        assert_eq!(x.root.as_ref().unwrap().data, 100);
+        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().data, 150);
+        assert_eq!(
+            x.root
+                .as_ref()
+                .unwrap()
+                .right
+                .as_ref()
+                .unwrap()
+                .right
+                .as_ref()
+                .unwrap()
+                .data,
+            200
+        );
+        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().data, 40);
+        assert_eq!(
+            x.root
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .right
+                .as_ref()
+                .unwrap()
+                .data,
+            50
+        );
+        assert_eq!(
+            x.root
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .data,
+            26
+        );
+        assert_eq!(
+            x.root
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .right
+                .as_ref()
+                .unwrap()
+                .data,
+            27
+        );
+        assert_eq!(
+            x.root
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .data,
+            25
+        );
+    }
+
+    #[test]
+    fn rotate_complete_rr() {
+        let mut x: TreeAVL<i32> = TreeAVL::new();
+        x.insert(100);
+        x.insert(40);
+        x.insert(150);
+        x.insert(200);
+        x.insert(50);
+        x.insert(26);
+        x.insert(27);
+        x.insert(25);
+        x.insert(24);
+        assert_eq!(x.root.as_ref().unwrap().data, 100);
+        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().data, 150);
+        assert_eq!(
+            x.root
+                .as_ref()
+                .unwrap()
+                .right
+                .as_ref()
+                .unwrap()
+                .right
+                .as_ref()
+                .unwrap()
+                .data,
+            200
+        );
+        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().data, 26);
+        assert_eq!(
+            x.root
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .right
+                .as_ref()
+                .unwrap()
+                .data,
+            40
+        );
+        assert_eq!(
+            x.root
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .data,
+            25
+        );
+        assert_eq!(
+            x.root
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .data,
+            24
+        );
+        assert_eq!(
+            x.root
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .right
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .data,
+            27
+        );
+        assert_eq!(
+            x.root
+                .as_ref()
+                .unwrap()
+                .left
+                .as_ref()
+                .unwrap()
+                .right
+                .as_ref()
+                .unwrap()
+                .right
+                .as_ref()
+                .unwrap()
+                .data,
+            50
+        );
     }
 }
