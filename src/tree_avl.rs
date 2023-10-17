@@ -192,30 +192,25 @@ impl<T: Ord> TreeAVL<T> {
     }
 
     pub fn remove(&mut self, key: T) {
-        match &mut self.root {
-            Some(node) => Self::remove_recursive(node, key),
-            None => return,
-        };
+        Self::remove_recursive(&mut self.root, key);
     }
 
-    fn remove_recursive(node: &mut Box<Node<T>>, key: T) -> bool {
-        let deletion_sucessful = match &node.key.cmp(&key) {
+    fn remove_recursive(node_option: &mut Option<Box<Node<T>>>, key: T) -> bool {
+        let node = match node_option {
+            Some(node) => node,
+            None => return false,
+        };
+        let deletion_sucessful = match &key.cmp(&node.key) {
             Ordering::Less => {
-                // move to left child
-                match &mut node.left {
-                    Some(child_node) => Self::remove_recursive(child_node, key),
-                    None => false,
-                }
+                // move to the left child
+                Self::remove_recursive(&mut node.left, key)
             }
             Ordering::Greater => {
-                // move to right child
-                match &mut node.right {
-                    Some(child_node) => Self::remove_recursive(child_node, key),
-                    None => false,
-                }
+                // move to the right child
+                Self::remove_recursive(&mut node.right, key)
             }
             Ordering::Equal => {
-                ();
+                *node_option = None;
                 true
             }
         };
