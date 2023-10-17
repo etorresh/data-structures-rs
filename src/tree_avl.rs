@@ -17,7 +17,7 @@ struct Node<T> {
     left: Option<Box<Node<T>>>,
     right: Option<Box<Node<T>>>,
     height: usize,
-    data: T,
+    key: T,
 }
 
 pub struct TreeAVL<T: Ord> {
@@ -33,12 +33,12 @@ impl<T: Ord> TreeAVL<T> {
         }
     }
 
-    pub fn insert(&mut self, data: T) {
+    pub fn insert(&mut self, key: T) {
         let new_node = Node {
             left: None,
             right: None,
             height: 0,
-            data,
+            key: key,
         };
         match &mut self.root {
             Some(node) => {
@@ -54,7 +54,7 @@ impl<T: Ord> TreeAVL<T> {
     }
 
     fn insert_recursive(parent: &mut Box<Node<T>>, new_node: Node<T>) -> bool {
-        let inserted = match &new_node.data.cmp(&parent.data) {
+        let inserted = match &new_node.key.cmp(&parent.key) {
             Ordering::Less => {
                 // add to left side
                 match &mut parent.left {
@@ -191,7 +191,36 @@ impl<T: Ord> TreeAVL<T> {
         Self::rotate_left(node);
     }
 
-    pub fn remove() {}
+    pub fn remove(&mut self, key: T) {
+        match &mut self.root {
+            Some(node) => Self::remove_recursive(node, key),
+            None => return,
+        };
+    }
+
+    fn remove_recursive(node: &mut Box<Node<T>>, key: T) -> bool {
+        let deletion_sucessful = match &node.key.cmp(&key) {
+            Ordering::Less => {
+                // move to left child
+                match &mut node.left {
+                    Some(child_node) => Self::remove_recursive(child_node, key),
+                    None => false,
+                }
+            }
+            Ordering::Greater => {
+                // move to right child
+                match &mut node.right {
+                    Some(child_node) => Self::remove_recursive(child_node, key),
+                    None => false,
+                }
+            }
+            Ordering::Equal => {
+                ();
+                true
+            }
+        };
+        deletion_sucessful
+    }
 
     pub fn search() {}
 }
@@ -205,9 +234,9 @@ mod tests {
         x.insert(10);
         x.insert(7);
         x.insert(5);
-        assert_eq!(x.root.as_ref().unwrap().data, 7);
-        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().data, 5);
-        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().data, 10);
+        assert_eq!(x.root.as_ref().unwrap().key, 7);
+        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().key, 5);
+        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().key, 10);
     }
 
     #[test]
@@ -216,9 +245,9 @@ mod tests {
         x.insert(5);
         x.insert(7);
         x.insert(10);
-        assert_eq!(x.root.as_ref().unwrap().data, 7);
-        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().data, 5);
-        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().data, 10);
+        assert_eq!(x.root.as_ref().unwrap().key, 7);
+        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().key, 5);
+        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().key, 10);
     }
 
     #[test]
@@ -227,9 +256,9 @@ mod tests {
         x.insert(5);
         x.insert(10);
         x.insert(7);
-        assert_eq!(x.root.as_ref().unwrap().data, 7);
-        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().data, 5);
-        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().data, 10);
+        assert_eq!(x.root.as_ref().unwrap().key, 7);
+        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().key, 5);
+        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().key, 10);
     }
 
     #[test]
@@ -238,9 +267,9 @@ mod tests {
         x.insert(10);
         x.insert(5);
         x.insert(7);
-        assert_eq!(x.root.as_ref().unwrap().data, 7);
-        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().data, 5);
-        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().data, 10);
+        assert_eq!(x.root.as_ref().unwrap().key, 7);
+        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().key, 5);
+        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().key, 10);
     }
 
     #[test]
@@ -255,8 +284,8 @@ mod tests {
         x.insert(27);
         x.insert(25);
         x.insert(24);
-        assert_eq!(x.root.as_ref().unwrap().data, 100);
-        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().data, 150);
+        assert_eq!(x.root.as_ref().unwrap().key, 100);
+        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().key, 150);
         assert_eq!(
             x.root
                 .as_ref()
@@ -267,10 +296,10 @@ mod tests {
                 .right
                 .as_ref()
                 .unwrap()
-                .data,
+                .key,
             200
         );
-        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().data, 26);
+        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().key, 26);
         assert_eq!(
             x.root
                 .as_ref()
@@ -281,7 +310,7 @@ mod tests {
                 .right
                 .as_ref()
                 .unwrap()
-                .data,
+                .key,
             40
         );
         assert_eq!(
@@ -294,7 +323,7 @@ mod tests {
                 .left
                 .as_ref()
                 .unwrap()
-                .data,
+                .key,
             25
         );
         assert_eq!(
@@ -310,7 +339,7 @@ mod tests {
                 .left
                 .as_ref()
                 .unwrap()
-                .data,
+                .key,
             24
         );
         assert_eq!(
@@ -326,7 +355,7 @@ mod tests {
                 .left
                 .as_ref()
                 .unwrap()
-                .data,
+                .key,
             27
         );
         assert_eq!(
@@ -342,7 +371,7 @@ mod tests {
                 .right
                 .as_ref()
                 .unwrap()
-                .data,
+                .key,
             50
         );
     }
@@ -359,8 +388,8 @@ mod tests {
         x.insert(175);
         x.insert(250);
         x.insert(300);
-        assert_eq!(x.root.as_ref().unwrap().data, 100);
-        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().data, 99);
+        assert_eq!(x.root.as_ref().unwrap().key, 100);
+        assert_eq!(x.root.as_ref().unwrap().left.as_ref().unwrap().key, 99);
         assert_eq!(
             x.root
                 .as_ref()
@@ -371,10 +400,10 @@ mod tests {
                 .left
                 .as_ref()
                 .unwrap()
-                .data,
+                .key,
             98
         );
-        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().data, 200);
+        assert_eq!(x.root.as_ref().unwrap().right.as_ref().unwrap().key, 200);
         assert_eq!(
             x.root
                 .as_ref()
@@ -385,7 +414,7 @@ mod tests {
                 .left
                 .as_ref()
                 .unwrap()
-                .data,
+                .key,
             150
         );
         assert_eq!(
@@ -401,7 +430,7 @@ mod tests {
                 .left
                 .as_ref()
                 .unwrap()
-                .data,
+                .key,
             125
         );
         assert_eq!(
@@ -417,7 +446,7 @@ mod tests {
                 .right
                 .as_ref()
                 .unwrap()
-                .data,
+                .key,
             175
         );
         assert_eq!(
@@ -430,7 +459,7 @@ mod tests {
                 .right
                 .as_ref()
                 .unwrap()
-                .data,
+                .key,
             250
         );
         assert_eq!(
@@ -446,8 +475,40 @@ mod tests {
                 .right
                 .as_ref()
                 .unwrap()
-                .data,
+                .key,
             300
         );
+    }
+
+    #[test]
+    fn delete_leaf() {
+        let mut x = TreeAVL::new();
+        x.insert(5);
+        x.insert(4);
+        x.insert(6);
+
+        x.remove(4);
+        assert!(x.root.as_ref().unwrap().left.is_none());
+    }
+
+    #[test]
+    fn delete_only_one_child() {
+        let mut x = TreeAVL::new();
+        x.insert(5);
+        x.insert(4);
+
+        x.remove(5);
+        assert_eq!(x.root.unwrap().key, 4);
+    }
+
+    #[test]
+    fn delete_two_childs() {
+        let mut x = TreeAVL::new();
+        x.insert(5);
+        x.insert(4);
+        x.insert(6);
+
+        x.remove(5);
+        assert_eq!(x.root.unwrap().key, 6);
     }
 }
