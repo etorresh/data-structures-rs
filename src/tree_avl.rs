@@ -200,7 +200,7 @@ impl<T: Ord> TreeAVL<T> {
             Some(node) => node,
             None => return false,
         };
-        let deletion_sucessful = match &key.cmp(&node.key) {
+        let found_node_to_delete = match &key.cmp(&node.key) {
             Ordering::Less => {
                 // move to the left child
                 Self::remove_recursive(&mut node.left, key)
@@ -210,11 +210,42 @@ impl<T: Ord> TreeAVL<T> {
                 Self::remove_recursive(&mut node.right, key)
             }
             Ordering::Equal => {
-                *node_option = None;
+                let overwrite_node;
+                match (node.left.as_ref(), node.right.as_ref()) {
+                    (Some(_), None) => overwrite_node = node.left.take(),
+                    (None, Some(_)) => overwrite_node = node.right.take(),
+                    (None, None) => overwrite_node = None,
+                    (Some(_), Some(_)) => {
+                        overwrite_node = Self::find_and_take_successor(&mut node.right)
+                    }
+                }
+
+                *node_option = overwrite_node;
                 true
             }
         };
-        deletion_sucessful
+
+        if found_node_to_delete {}
+
+        found_node_to_delete
+    }
+
+    // Takes the in-order successor and returns it.
+    // NEXT STEP HERE: I looked at GeeksForGeeks C code for avl trees and turns out  there's a reason for not
+    // just straight up deleting the node, if you swap the node to delete with the in-order successor then
+    //  you can call your delete method again and treat it like a leaf node delete which makes rebalancing
+    // really easy. so fucking smart
+    fn find_and_take_successor(node_option: &mut Option<Box<Node<T>>>) -> Option<Box<Node<T>>> {
+        let successor;
+        if node_option.as_ref().unwrap().left.is_some() {
+            successor = Self::find_and_take_successor(&mut node_option.as_mut().unwrap().left);
+        } else if node_option.as_ref().unwrap().right.is_some() {
+            successor = Self::find_and_take_successor(&mut node_option.as_mut().unwrap().right);
+        } else {
+            successor = node_option.take();
+        }
+
+        successor
     }
 
     pub fn search() {}
@@ -497,7 +528,7 @@ mod tests {
     }
 
     #[test]
-    fn delete_two_childs() {
+    fn delete_two_childs_balanced() {
         let mut x = TreeAVL::new();
         x.insert(5);
         x.insert(4);
@@ -505,5 +536,16 @@ mod tests {
 
         x.remove(5);
         assert_eq!(x.root.unwrap().key, 6);
+    }
+
+    #[test]
+    fn delete_two_childs_unbalanced() {
+        let mut x = TreeAVL::new();
+        x.insert(5);
+        x.insert(4);
+        x.insert(6);
+        x.insert(3);
+        x.remove(6);
+        assert_eq!(x.root.unwrap().key, 4);
     }
 }
