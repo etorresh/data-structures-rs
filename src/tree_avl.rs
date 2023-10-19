@@ -210,42 +210,36 @@ impl<T: Ord> TreeAVL<T> {
                 Self::remove_recursive(&mut node.right, key)
             }
             Ordering::Equal => {
-                let overwrite_node;
                 match (node.left.as_ref(), node.right.as_ref()) {
-                    (Some(_), None) => overwrite_node = node.left.take(),
-                    (None, Some(_)) => overwrite_node = node.right.take(),
-                    (None, None) => overwrite_node = None,
+                    (Some(_), None) => *node_option = node.left.take(),
+                    (None, Some(_)) => *node_option = node.right.take(),
+                    (None, None) => *node_option = None,
                     (Some(_), Some(_)) => {
-                        overwrite_node = Self::find_and_take_successor(&mut node.right)
+                        let in_order_successor = {
+                            let mut current = node.right.as_mut().unwrap();
+                            while current.left.is_some() {
+                                current = current.left.as_mut().unwrap();
+                            }
+                            current
+                        };
+                        std::mem::swap(&mut node.key, &mut in_order_successor.key);
+                        if !Self::remove_recursive(&mut node.right, key) {
+                            panic!("Failed to remove in_order_successor: Expected a node with the provided key in the right subtree.")
+                        }
                     }
                 }
-
-                *node_option = overwrite_node;
                 true
             }
         };
 
-        if found_node_to_delete {}
-
-        found_node_to_delete
-    }
-
-    // Takes the in-order successor and returns it.
-    // NEXT STEP HERE: I looked at GeeksForGeeks C code for avl trees and turns out  there's a reason for not
-    // just straight up deleting the node, if you swap the node to delete with the in-order successor then
-    //  you can call your delete method again and treat it like a leaf node delete which makes rebalancing
-    // really easy. so fucking smart
-    fn find_and_take_successor(node_option: &mut Option<Box<Node<T>>>) -> Option<Box<Node<T>>> {
-        let successor;
-        if node_option.as_ref().unwrap().left.is_some() {
-            successor = Self::find_and_take_successor(&mut node_option.as_mut().unwrap().left);
-        } else if node_option.as_ref().unwrap().right.is_some() {
-            successor = Self::find_and_take_successor(&mut node_option.as_mut().unwrap().right);
-        } else {
-            successor = node_option.take();
+        if found_node_to_delete {
+            if let Some(node) = node_option {
+                node.height = Self::height(node);
+                Self::check_balance(node);
+            }
         }
 
-        successor
+        found_node_to_delete
     }
 
     pub fn search() {}
