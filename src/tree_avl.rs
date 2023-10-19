@@ -9,9 +9,13 @@ AVL Tree
 https://stackoverflow.com/questions/63452633/is-the-ll-rotation-a-single-left-rotation-or-a-single-right-rotation?rq=1
 A tree with an LL imbalance needs a right rotation.
 A tree with a RR imbalance needs a left rotation.
+
+Improvements:
+-After inserting at most you need one rotation (single or double) therefore when traversing up the tree
+we could have a conditional check to avoid unecessary balance factor calculations after the first rotation.
 */
 
-use std::cmp::{self, Ordering};
+use std::cmp::Ordering;
 
 struct Node<T> {
     left: Option<Box<Node<T>>>,
@@ -79,17 +83,17 @@ impl<T: Ord> TreeAVL<T> {
         };
 
         if inserted {
-            parent.height = Self::height(parent);
+            parent.height = Self::calculate_height(parent);
             Self::check_balance(parent);
         }
         inserted
     }
 
-    fn height(node: &Box<Node<T>>) -> usize {
+    fn calculate_height(node: &Box<Node<T>>) -> usize {
         if node.left.is_none() && node.right.is_none() {
             return 0;
         }
-        1 + cmp::max(
+        1 + std::cmp::max(
             node.left.as_ref().map_or(0, |child| child.height),
             node.right.as_ref().map_or(0, |child| child.height),
         )
@@ -158,11 +162,11 @@ impl<T: Ord> TreeAVL<T> {
         std::mem::swap(&mut right_child, node);
 
         // Update height and then attach as right child of node
-        right_child.height = Self::height(&right_child);
+        right_child.height = Self::calculate_height(&right_child);
         node.left = Some(right_child);
 
         // Update height
-        node.height = Self::height(node);
+        node.height = Self::calculate_height(node);
     }
 
     // Balance factor of the current node is > 1, and balance factor of the right child is <= -1.
@@ -172,11 +176,11 @@ impl<T: Ord> TreeAVL<T> {
         std::mem::swap(&mut left_child, node);
 
         // Update height and then attach as right child of node
-        left_child.height = Self::height(&left_child);
+        left_child.height = Self::calculate_height(&left_child);
         node.right = Some(left_child);
 
         // Update height
-        node.height = Self::height(node);
+        node.height = Self::calculate_height(node);
     }
 
     // Balance factor of the current node is < -1, and balance factor of the right child is >= 1.
@@ -234,7 +238,7 @@ impl<T: Ord> TreeAVL<T> {
 
         if found_node_to_delete {
             if let Some(node) = node_option {
-                node.height = Self::height(node);
+                node.height = Self::calculate_height(node);
                 Self::check_balance(node);
             }
         }
@@ -242,7 +246,36 @@ impl<T: Ord> TreeAVL<T> {
         found_node_to_delete
     }
 
-    pub fn search() {}
+    pub fn contains(&self, key: T) -> bool {
+        let mut current = &self.root;
+        while let Some(node) = current {
+            match key.cmp(&node.key) {
+                Ordering::Less => current = &node.left,
+                Ordering::Equal => return true,
+                Ordering::Greater => current = &node.right,
+            }
+        }
+        false
+    }
+
+    pub fn size(&self) -> usize {
+        self.size
+    }
+
+    pub fn height(&self) -> usize {
+        match &self.root {
+            Some(node) => Self::calculate_height(node),
+            None => 0,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.root.is_none()
+    }
+
+    pub fn clear(&mut self) {
+        self.root = None;
+    }
 }
 #[cfg(test)]
 mod tests {
@@ -541,5 +574,14 @@ mod tests {
         x.insert(3);
         x.remove(6);
         assert_eq!(x.root.unwrap().key, 4);
+    }
+
+    #[test]
+    fn contains() {
+        let mut x = TreeAVL::new();
+        x.insert(5);
+        x.insert(4);
+        x.insert(6);
+        assert!(x.contains(6));
     }
 }
