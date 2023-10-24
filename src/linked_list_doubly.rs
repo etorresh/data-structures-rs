@@ -5,6 +5,13 @@
 // I had std::borrow::BorrowMut which was shadowing the method of the same name in RefCell.
 // I'm learning Rust so I thought the error was on my logic, my brain almost fucking fried.
 // https://github.com/rust-lang/rust/issues/39232 a PR was added a few months before this that makes the type check warn you lol
+
+// TODOs for DoublyLinkedList:
+// 1. Handle `previous` pointers in `reverse` and `remove` methods.
+// 2. Implement the `Drop` trait for memory cleanup.
+// 3. Refactor to eliminate repetitive patterns.
+// 4. Add comments explaining core logic.
+// 5. Implement a reverse iterator.
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::rc::Weak;
@@ -16,13 +23,16 @@ struct Node<T> {
     previous: Weak<RefCell<Option<Node<T>>>>,
 }
 
-pub struct DoublyLinkedList<T> {
+pub struct DoublyLinkedList<T: PartialEq> {
     head: Link<T>,
     tail: Link<T>,
     counter: usize,
 }
 
-impl<T> DoublyLinkedList<T> {
+impl<T> DoublyLinkedList<T>
+where
+    T: PartialEq,
+{
     pub fn new() -> DoublyLinkedList<T> {
         let head = Rc::new(RefCell::new(None));
         let tail = Rc::clone(&head);
@@ -95,6 +105,7 @@ impl<T> DoublyLinkedList<T> {
         self.counter -= 1;
     }
 
+    // To do: this doesn't handle previous pointers
     pub fn reverse(&mut self) {
         let mut prev_link = None;
         let mut current_link = self.head.take();
@@ -107,16 +118,53 @@ impl<T> DoublyLinkedList<T> {
         }
         self.head = Rc::new(RefCell::new(prev_link));
     }
+
+    // TO DO: this is not handling previous pointers
+    pub fn remove(&mut self, data: T) {
+        let mut current = self.head.clone();
+        let mut prev = Rc::new(RefCell::new(None::<Node<T>>));
+
+        while current.borrow().is_some() {
+            let next;
+            {
+                let borrowed = current.borrow();
+                let node = borrowed.as_ref().unwrap();
+                if node.data == data {
+                    if Rc::ptr_eq(&self.head, &current) {
+                        self.head = Rc::clone(&node.next);
+
+                        if let Some(new_head) = self.head.borrow_mut().as_mut() {
+                            new_head.previous = Weak::new();
+                        }
+                    } else {
+                        prev.borrow_mut().as_mut().unwrap().next = Rc::clone(&node.next);
+
+                        if let Some(next_node) = node.next.borrow_mut().as_mut() {
+                            next_node.previous = Rc::downgrade(&prev);
+                        }
+                    }
+                    self.counter -= 1;
+
+                    return;
+                }
+                next = current.borrow().as_ref().unwrap().next.clone();
+            }
+            prev = current.clone();
+            current = next;
+        }
+    }
 }
 
-pub struct IntoIter<T>(DoublyLinkedList<T>);
-impl<T> DoublyLinkedList<T> {
+pub struct IntoIter<T>(DoublyLinkedList<T>)
+where
+    T: PartialEq;
+impl<T: PartialEq> DoublyLinkedList<T> {
     pub fn into_iter(self) -> IntoIter<T> {
         IntoIter(self)
     }
 }
 
-impl<T> Iterator for IntoIter<T> {
+impl<T: PartialEq> Iterator for IntoIter<T> {
     type Item = T;
     fn next(&mut self) -> Option<Self::Item> {
         self.0.remove_first()
@@ -301,5 +349,83 @@ mod tests {
         list.add_first(1);
         list.remove_first();
         list.remove_first();
+    }
+
+    #[test]
+    fn remove_middle() {
+        let mut list = DoublyLinkedList::new();
+        list.add_first(10);
+        list.add_first(9);
+        list.add_first(8);
+        list.remove(9);
+        assert_eq!(list.counter, 2);
+        assert_eq!(list.remove_first().unwrap(), 8);
+        assert_eq!(list.remove_first().unwrap(), 10);
+    }
+
+    #[test]
+    fn remove_head() {
+        let mut list = DoublyLinkedList::new();
+        list.add_first(10);
+        list.add_first(9);
+        list.add_first(8);
+        list.remove(8);
+        assert_eq!(list.counter, 2);
+        assert_eq!(list.remove_first().unwrap(), 9);
+    }
+
+    #[test]
+    fn remove_empty_list() {
+        let mut list = DoublyLinkedList::new();
+        list.remove(2);
+    }
+
+    #[test]
+    fn remove_tail() {
+        let mut list = DoublyLinkedList::new();
+        list.add_first(10);
+        list.add_first(9);
+        list.add_first(8);
+        list.remove(10);
+        assert_eq!(list.counter, 2);
+        assert_eq!(list.remove_first().unwrap(), 8);
+        assert_eq!(list.remove_first().unwrap(), 9);
+        assert!(list.remove_first().is_none());
+    }
+
+    #[test]
+    fn remove_non_existent() {
+        let mut list = DoublyLinkedList::new();
+        list.add_first(10);
+        list.add_first(9);
+        list.add_first(8);
+        list.remove(7);
+        assert_eq!(list.counter, 3);
+        assert_eq!(list.remove_first().unwrap(), 8);
+        assert_eq!(list.remove_first().unwrap(), 9);
+        assert_eq!(list.remove_first().unwrap(), 10);
+    }
+
+    #[test]
+    fn remove_repeated_element() {
+        let mut list = DoublyLinkedList::new();
+        list.add_first(10);
+        list.add_first(9);
+        list.add_first(9);
+        list.add_first(8);
+        list.remove(9);
+        assert_eq!(list.counter, 3);
+        assert_eq!(list.remove_first().unwrap(), 8);
+        assert_eq!(list.remove_first().unwrap(), 9);
+        assert_eq!(list.remove_first().unwrap(), 10);
+    }
+
+    #[test]
+    fn remove_from_single_element_list() {
+        let mut list = DoublyLinkedList::new();
+        list.add_first(8);
+        list.remove(8);
+        assert_eq!(list.counter, 0);
+        assert!(list.remove_first().is_none());
     }
 }
