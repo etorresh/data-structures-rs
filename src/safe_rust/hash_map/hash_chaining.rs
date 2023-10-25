@@ -1,6 +1,6 @@
 // A custom hash map implementation that resolves collisions using chaining.
 
-use crate::hash_map::hash_linked_list::HashLinkedList;
+use crate::safe_rust::hash_map::hash_linked_list::HashLinkedList;
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},

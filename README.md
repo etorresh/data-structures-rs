@@ -1,5 +1,11 @@
-# Safe Rust Data Structures
+# Rust Data Structures and Algorithms
 
-I'm diving into data structures and algorithms with Rust with the constraint of only using safe code. Why? Interviews, a passion for understanding how things work, and improving my understanding of Rust.
+I'm diving into data structures and algorithms with Rust to practice for interviews, and improve my understanding of Rust. This repository contains Rust implementations of various data structures and algorithms, organized into two main sections:
 
-This is mainly for anyone curious about how data structures look if you don't touch `unsafe`.
+#### Safe Rust Data Structures:
+
+Data structures built exclusively using safe Rust.
+
+#### Interviews Exposed:
+
+Code and solutions from the book "Interviews Exposed", which may include unsafe code.
