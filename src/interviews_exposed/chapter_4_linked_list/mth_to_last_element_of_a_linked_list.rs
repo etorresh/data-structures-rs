@@ -38,14 +38,14 @@ mod tests {
 
     #[test]
     fn empty_list() {
-        let mut list: linked_list::LinkedList<i32> = linked_list::LinkedList::new();
+        let list: linked_list::LinkedList<i32> = linked_list::LinkedList::new();
         assert!(list.mth_to_last_element(100).is_none());
     }
 
     #[test]
     fn list_with_one_element() {
         let mut list = linked_list::LinkedList::new();
-        list.add_first(1);
+        list.add_last(1);
         assert_eq!(list.mth_to_last_element(0), Some(&1));
     }
 }
@@ -58,7 +58,7 @@ mod linked_list {
 
     type Link<T> = Option<Box<Node<T>>>;
     struct Node<T> {
-        key: T,
+        data: T,
         next: Link<T>,
     }
 
@@ -71,20 +71,9 @@ mod linked_list {
             let head = None;
             LinkedList { head }
         }
-        pub fn add_first(&mut self, data: T) {
-            let new_node = Some(Box::new(Node {
-                key: data,
-                next: self.head.take(),
-            }));
-
-            self.head = new_node;
-        }
 
         pub fn add_last(&mut self, data: T) {
-            let new_tail_node = Some(Box::new(Node {
-                key: data,
-                next: None,
-            }));
+            let new_tail_node = Some(Box::new(Node { data, next: None }));
 
             let mut current_link = &mut self.head;
             while let Some(node) = current_link {
@@ -93,23 +82,25 @@ mod linked_list {
             *current_link = new_tail_node;
         }
 
-        pub fn mth_to_last_element(&mut self, mut m: usize) -> Option<&T> {
-            m += 1;
+        pub fn mth_to_last_element(&self, m: usize) -> Option<&T> {
             let mut current_opt = self.head.as_ref();
             let mut window_opt = self.head.as_ref();
-            while current_opt.is_some() {
-                let current_node = current_opt.unwrap();
-                if m != 0 {
-                    m -= 1;
-                } else {
-                    match window_opt {
-                        Some(window_node) => window_opt = window_node.next.as_ref(),
-                        None => window_opt = Some(current_node),
-                    }
-                }
-                current_opt = current_node.next.as_ref();
+
+            // Advance current_opt 'm' nodes
+            for _ in 0..m {
+                current_opt = current_opt?.next.as_ref();
             }
-            window_opt.map(|node| &node.key)
+
+            // Advance both pointers until `current_opt` reaches the end
+            while current_opt.is_some() {
+                current_opt = current_opt?.next.as_ref();
+                // Covers case where we get the last element
+                if current_opt.is_some() {
+                    window_opt = window_opt.unwrap().next.as_ref();
+                }
+            }
+
+            window_opt.map(|node| &node.data)
         }
     }
 }
