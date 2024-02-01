@@ -1,1 +1,1 @@
-pub mod chapter_7_searching;
+pub mod chapter_8_sorting;
